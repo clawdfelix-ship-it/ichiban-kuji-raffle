@@ -63,6 +63,24 @@ header p {
   font-size: 1rem;
 }
 
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header-text {
+  flex: 1;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .back-link {
   color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
@@ -189,6 +207,15 @@ h3 {
 .btn-warning {
   background-color: var(--warning-color);
   color: white;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+.btn-outline:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .btn-warning:hover {
