@@ -6,20 +6,29 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // PostgreSQL connection - supports Vercel Postgres
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('ERROR: POSTGRES_URL environment variable is not set!');
+  console.error('Please go to Vercel dashboard → Project → Settings → Environment Variables');
+  console.error('Add POSTGRES_URL from your Vercel Postgres connection string');
+}
+
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-  ssl: process.env.POSTGRES_URL ? { rejectUnauthorized: false } : false
+  connectionString,
+  ssl: connectionString ? { rejectUnauthorized: false } : false
 });
 
 // Test connection
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('Error connecting to PostgreSQL:', err);
-  } else {
-    console.log('Connected to PostgreSQL database');
-    release();
-  }
-});
+if (connectionString) {
+  pool.connect((err, client, release) => {
+    if (err) {
+      console.error('Error connecting to PostgreSQL:', err);
+    } else {
+      console.log('Connected to PostgreSQL database');
+      release();
+    }
+  });
+}
 
 // Promisify query
 function query(sql, params = []) {
@@ -128,6 +137,36 @@ initDatabase();
 // Home page - list all active raffles
 app.get('/', async (req, res) => {
   try {
+    if (!connectionString) {
+      return res.send(`
+        <!DOCTYPE html>
+        <html lang="zh-HK">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>設定錯誤 - Ichiban Kuji Raffle</title>
+          <style>body{font-family:Arial,sans-serif;max-width:800px;margin:50px auto;padding:20px}h1{color:#e74c3c}pre{background:#f5f5f5;padding:10px;border-radius:4px;overflow:auto}</style>
+        </head>
+        <body>
+          <h1>⚠️  數據庫連接設定錯誤</h1>
+          <p><strong>問題:</strong> 環境變量 <code>POSTGRES_URL</code> 未設定</p>
+          <h3>解決方法:</h3>
+          <ol>
+            <li>去 Vercel 後台 → 這個項目 → Settings → Environment Variables</li>
+            <li>添加 <code>POSTGRES_URL</code>，值係你嘅 Vercel Postgres 連接字符串</li>
+            <li>重新部署項目</li>
+          </ol>
+          <p>如果你仲未創建 Vercel Postgres 數據庫:</p>
+          <ol>
+            <li>在 Vercel dashboard → Storage → Create Database → Vercel Postgres</li>
+            <li>創建完成後複製 Connection String</li>
+            <li>添加到 Environment Variables 命名為 <code>POSTGRES_URL</code></li>
+            <li>Redeploy</li>
+          </ol>
+        </body>
+        </html>
+      `);
+    }
     const result = await query(`
       SELECT id, title, description, total_boxes, remaining_boxes, price_per_box, status
       FROM raffles
@@ -137,7 +176,22 @@ app.get('/', async (req, res) => {
     res.render('index', { raffles: result.rows });
   } catch (err) {
     console.error(err);
-    res.status(500).send('Server error: ' + err.message);
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html lang="zh-HK">
+      <head>
+        <meta charset="UTF-8">
+        <title>Server Error</title>
+        <style>body{font-family:Arial,sans-serif;max-width:800px;margin:50px auto;padding:20px}h1{color:#e74c3c}pre{background:#f5f5f5;padding:10px;border-radius:4px;overflow:auto}</style>
+      </head>
+      <body>
+        <h1>❌ Internal Server Error</h1>
+        <p><strong>Error:</strong></p>
+        <pre>${err.message}</pre>
+        <p>Check Vercel logs for more details.</p>
+      </body>
+      </html>
+    `);
   }
 });
 
