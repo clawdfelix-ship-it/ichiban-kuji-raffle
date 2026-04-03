@@ -483,7 +483,7 @@ app.post('/api/admin/raffles/:id/prizes/add', async (req, res) => {
       image_url || null,
       parseInt(total_count),
       parseInt(total_count),
-      is_final ? true : false,
+      is_final ? 't' : 'f',
       is_final ? (parseInt(pool_number) || 1) : null
     ]);
     
