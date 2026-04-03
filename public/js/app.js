@@ -124,7 +124,6 @@ function initAdminDashboard() {
 // ============================================
 // Create Raffle Page (Wizard)
 // ============================================
-let currentRaffleId = null;
 let prizesAdded = [];
 
 function initCreateRafflePage() {
