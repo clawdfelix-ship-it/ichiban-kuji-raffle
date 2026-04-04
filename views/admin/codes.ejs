@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>驗證碼管理 - <%= title %> - 一番賞線上抽獎</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <div class="header-text">
+          <a href="/admin" class="back-link">← 返回後台</a>
+          <h1>驗證碼管理</h1>
+          <p><%= title %></p>
+        </div>
+        <div class="header-buttons">
+          <a href="/logout" class="btn btn-secondary btn-sm">登出</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <input type="hidden" id="raffleId" value="<%= raffleId %>">
+    <section class="card">
+      <h2>生成新驗證碼</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="generateCount">生成數量</label>
+          <input type="number" id="generateCount" min="1" max="5000" value="1">
+        </div>
+        <button id="generateBtn" class="btn btn-primary">生成</button>
+      </div>
+      <p style="opacity:0.7;margin-top:8px;">提示：生成後可以用「複製全部」一次過拎走。</p>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <div class="admin-header">
+        <h2>已生成驗證碼 (<span id="codesCount">0</span>)</h2>
+        <button id="copyAllBtn" class="btn btn-secondary btn-sm" disabled>複製全部</button>
+      </div>
+      <div id="codesList" class="codes-list">
+        <div class="empty-state">
+          <p>尚未生成任何驗證碼</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Admin - Ichiban Kuji Raffle</p>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const raffleId = parseInt(document.getElementById('raffleId').value, 10);
+      const codesList = document.getElementById('codesList');
+      const codesCount = document.getElementById('codesCount');
+      const copyAllBtn = document.getElementById('copyAllBtn');
+      const generateBtn = document.getElementById('generateBtn');
+
+      async function loadCodes() {
+        const result = await apiRequest(`/api/admin/raffles/${raffleId}/codes`);
+        const codes = result.codes || [];
+        codesCount.textContent = String(codes.length);
+
+        if (codes.length === 0) {
+          copyAllBtn.disabled = true;
+          codesList.innerHTML = '<div class="empty-state"><p>尚未生成任何驗證碼</p></div>';
+          return;
+        }
+
+        copyAllBtn.disabled = false;
+
+        let html = '<div class="codes-table-wrapper"><table class="codes-table"><thead><tr><th>驗證碼</th><th>狀態</th><th>生成時間</th></tr></thead><tbody>';
+        codes.forEach(c => {
+          const status = c.used ? '已使用' : '未使用';
+          const statusClass = c.used ? 'used' : 'unused';
+          html += `
+            <tr>
+              <td><code class="code-text">${c.code}</code></td>
+              <td><span class="status-badge ${statusClass}">${status}</span></td>
+              <td>${new Date(c.created_at).toLocaleString('zh-HK')}</td>
+            </tr>
+          `;
+        });
+        html += '</tbody></table></div>';
+        codesList.innerHTML = html;
+      }
+
+      generateBtn.addEventListener('click', async () => {
+        const count = parseInt(document.getElementById('generateCount').value, 10);
+        if (!count || count < 1) {
+          alert('請輸入正確數量');
+          return;
+        }
+        generateBtn.disabled = true;
+        try {
+          const result = await apiRequest(`/api/admin/raffles/${raffleId}/generate-codes`, {
+            method: 'POST',
+            body: JSON.stringify({ count })
+          });
+          alert(`成功生成 ${result.count} 個驗證碼`);
+          await loadCodes();
+        } catch (err) {
+          alert(err.message);
+        } finally {
+          generateBtn.disabled = false;
+        }
+      });
+
+      copyAllBtn.addEventListener('click', async () => {
+        try {
+          const result = await apiRequest(`/api/admin/raffles/${raffleId}/codes`);
+          const codes = (result.codes || []).map(c => c.code).join('\\n');
+          await navigator.clipboard.writeText(codes);
+          alert('全部驗證碼已複製到剪貼板');
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+
+      loadCodes().catch(err => alert(err.message));
+    });
+  </script>
+</body>
+</html>

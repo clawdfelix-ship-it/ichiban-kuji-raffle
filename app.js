@@ -627,6 +627,23 @@ app.get('/admin/create', requireAdmin, (req, res) => {
   res.render('admin/create');
 });
 
+app.get('/admin/raffles/:id/codes', requireAdmin, async (req, res) => {
+  try {
+    const raffleId = parseInt(req.params.id);
+    if (!raffleId) {
+      return res.status(400).send('抽獎活動ID無效');
+    }
+    const raffleResult = await dbQuery('SELECT id, title FROM raffles WHERE id = $1', [raffleId]);
+    if (raffleResult.rows.length === 0) {
+      return res.status(404).send('抽獎活動不存在');
+    }
+    res.render('admin/codes', { raffleId, title: raffleResult.rows[0].title });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
 app.get('/admin/login', (req, res) => {
   if (req.session.user?.is_admin) {
     return res.redirect('/admin');
