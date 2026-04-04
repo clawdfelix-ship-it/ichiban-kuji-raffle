@@ -15,7 +15,7 @@
   </header>
 
   <main class="container">
-    <div id="loginRequired" class="empty-state">
+    <div id="loginRequired" class="empty-state hidden">
       <p>請先登入會員才能查看你的抽獎記錄</p>
       <a href="/login" class="btn btn-primary">立即登入</a>
     </div>
@@ -39,6 +39,7 @@
   <script src="/js/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('loginRequired').classList.add('hidden');
       document.getElementById('myContent').classList.remove('hidden');
 
       try {
