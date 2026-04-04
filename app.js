@@ -46,8 +46,13 @@ app.use(express.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-if (process.env.VERCEL) {
+const isVercel = !!process.env.VERCEL;
+if (isVercel) {
   app.set('trust proxy', 1);
+}
+
+if (isVercel && !process.env.SESSION_SECRET) {
+  throw new Error('SESSION_SECRET is required on Vercel. Please set it in Vercel Environment Variables.');
 }
 
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
@@ -82,7 +87,7 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
-      secure: !!process.env.VERCEL
+      secure: isVercel
     },
     ...(connectionString
       ? {
