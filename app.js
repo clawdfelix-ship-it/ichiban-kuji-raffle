@@ -135,8 +135,8 @@ async function initDatabase() {
     if (adminResult.rows[0].count === '0') {
       const defaultPassword = await bcrypt.hash('admin123', 10);
       await query(
-        'INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, $3)',
-        ['admin', defaultPassword, 1]
+        'INSERT INTO users (username, password_hash, contact, is_admin) VALUES ($1, $2, $3, $4)',
+        ['admin', defaultPassword, 'admin@example.com', 1]
       );
       console.log('Default admin user created: admin / admin123');
     }
