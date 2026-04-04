@@ -7,13 +7,13 @@ let currentRaffleId = null;
 
 // Utility functions
 async function apiRequest(url, options = {}) {
-  const defaultOptions = {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
+  const hasFormData = options.body instanceof FormData;
+  const headers = { ...(options.headers || {}) };
+  if (!hasFormData && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
-  const response = await fetch(url, { ...defaultOptions, ...options });
+  const response = await fetch(url, { ...options, headers });
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error || '發生錯誤');
@@ -235,6 +235,22 @@ function initCreateRafflePage() {
   const basicForm = document.getElementById('basicInfoForm');
   const isFinalCheckbox = document.getElementById('is_final');
   const poolNumberGroup = document.getElementById('poolNumberGroup');
+  const coverInput = document.getElementById('cover_image');
+  const coverPreview = document.getElementById('coverPreview');
+  const coverPreviewImg = document.getElementById('coverPreviewImg');
+
+  if (coverInput && coverPreview && coverPreviewImg) {
+    coverInput.addEventListener('change', () => {
+      const file = coverInput.files && coverInput.files[0];
+      if (!file) {
+        coverPreview.style.display = 'none';
+        coverPreviewImg.removeAttribute('src');
+        return;
+      }
+      coverPreview.style.display = 'block';
+      coverPreviewImg.src = URL.createObjectURL(file);
+    });
+  }
 
   basicForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -253,9 +269,15 @@ function initCreateRafflePage() {
     }
 
     try {
+      const formData = new FormData();
+      Object.entries(data).forEach(([k, v]) => formData.append(k, v));
+      const coverFile = coverInput && coverInput.files && coverInput.files[0];
+      if (coverFile) {
+        formData.append('cover_image', coverFile);
+      }
       const result = await apiRequest('/api/admin/raffles/create', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: formData,
       });
 
       currentRaffleId = result.raffleId;

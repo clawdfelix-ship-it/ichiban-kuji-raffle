@@ -45,6 +45,9 @@
       <div class="raffle-list">
         <% raffles.forEach(raffle => { %>
           <div class="raffle-card">
+            <% if (raffle.cover_image) { %>
+              <img class="raffle-cover" src="<%= raffle.cover_image %>" alt="<%= raffle.title %> 封面">
+            <% } %>
             <h3><%= raffle.title %></h3>
             <p><%= raffle.description %></p>
             <div class="raffle-stats">

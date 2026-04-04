@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const crypto = require('crypto');
+const multer = require('multer');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -19,6 +20,13 @@ if (!connectionString) {
 const pool = new Pool({
   connectionString,
   ssl: connectionString ? { rejectUnauthorized: false } : false
+});
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 2 * 1024 * 1024
+  }
 });
 
 // Test connection
@@ -142,6 +150,7 @@ async function initDatabase() {
         type TEXT DEFAULT 'ichiban',
         total_boxes INTEGER,
         price_per_box REAL,
+        cover_image TEXT NULL,
         remaining_boxes INTEGER,
         num_pools INTEGER DEFAULT 1,
         start_date TIMESTAMP,
@@ -207,6 +216,7 @@ async function initDatabase() {
     await dbQuery('ALTER TABLE verification_codes ADD COLUMN IF NOT EXISTS assigned_user_id INTEGER NULL');
     await dbQuery('ALTER TABLE verification_codes ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMP NULL');
     await dbQuery('ALTER TABLE verification_codes ADD COLUMN IF NOT EXISTS assigned_by INTEGER NULL');
+    await dbQuery('ALTER TABLE raffles ADD COLUMN IF NOT EXISTS cover_image TEXT NULL');
 
     const adminResult = await dbQuery('SELECT COUNT(*) as count FROM users WHERE is_admin = 1');
     const hasAdmin = adminResult.rows[0]?.count !== '0';
@@ -345,7 +355,7 @@ app.get('/', async (req, res) => {
       `);
     }
     const result = await dbQuery(`
-      SELECT id, title, description, total_boxes, remaining_boxes, price_per_box, status
+      SELECT id, title, description, total_boxes, remaining_boxes, price_per_box, status, cover_image
       FROM raffles
       WHERE status = 'active'
       ORDER BY created_at DESC
@@ -693,7 +703,7 @@ app.get('/admin/login', (req, res) => {
 });
 
 // Create raffle API
-app.post('/api/admin/raffles/create', async (req, res) => {
+app.post('/api/admin/raffles/create', upload.single('cover_image'), async (req, res) => {
   try {
     if (!req.session.user || !req.session.user.is_admin) {
       return res.status(403).json({ error: '需要管理員權限' });
@@ -707,6 +717,16 @@ app.post('/api/admin/raffles/create', async (req, res) => {
       start_date,
       end_date 
     } = req.body;
+
+    let coverImage = null;
+    if (req.file) {
+      const isImage = typeof req.file.mimetype === 'string' && req.file.mimetype.startsWith('image/');
+      if (!isImage) {
+        return res.status(400).json({ error: '封面必須是圖片檔案' });
+      }
+      const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      coverImage = dataUri;
+    }
     
     const parsedTotalBoxes = parseInt(total_boxes);
     const parsedPrice = parseFloat(price_per_box);
@@ -721,15 +741,16 @@ app.post('/api/admin/raffles/create', async (req, res) => {
 
     const result = await dbQuery(`
       INSERT INTO raffles (
-        title, description, type, total_boxes, price_per_box, 
+        title, description, type, total_boxes, price_per_box, cover_image,
         remaining_boxes, num_pools, start_date, end_date, status
-      ) VALUES ($1, $2, 'ichiban', $3, $4, $5, $6, $7, $8, 'active')
+      ) VALUES ($1, $2, 'ichiban', $3, $4, $5, $6, $7, $8, $9, 'active')
       RETURNING id
     `, [
       title, 
       description, 
       parsedTotalBoxes,
       parsedPrice,
+      coverImage,
       parsedTotalBoxes,
       parsedPools,
       start_date || null,
