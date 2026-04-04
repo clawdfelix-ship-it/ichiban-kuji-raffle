@@ -7,18 +7,18 @@
 
 /* CSS Variables - Hong Kong Clean Small Business Style */
 :root {
-  --primary-color: #d32f2f;
-  --primary-dark: #9a0007;
-  --secondary-color: #424242;
-  --success-color: #2e7d32;
-  --warning-color: #f57c00;
-  --danger-color: #c62828;
-  --bg-color: #f5f5f5;
+  --primary-color: #2563eb;
+  --primary-dark: #1d4ed8;
+  --secondary-color: #334155;
+  --success-color: #0ea5e9;
+  --warning-color: #60a5fa;
+  --danger-color: #1e40af;
+  --bg-color: #f3f6fb;
   --card-bg: #ffffff;
-  --text-primary: #1a1a1a;
-  --text-secondary: #616161; /* Improved contrast from #666666 */
-  --text-tertiary: #757575;
-  --border-color: #e0e0e0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --border-color: #e2e8f0;
   /* Refined shadow system for modern depth */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.12);
   --shadow: 0 3px 6px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
@@ -285,7 +285,7 @@ h3 {
 }
 
 .btn-success:hover {
-  background-color: #1b5e20;
+  background-color: #0284c7;
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
@@ -301,7 +301,7 @@ h3 {
 }
 
 .btn-warning:hover {
-  background-color: #e65100;
+  background-color: #3b82f6;
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
@@ -373,7 +373,7 @@ header .btn-outline:hover {
 .form-group textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.12);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16);
   transform: translateY(-1px);
 }
 
@@ -428,7 +428,7 @@ header .btn-outline:hover {
 
 /* Payment Alert */
 .payment-alert {
-  background: #fff3e0;
+  background: #eff6ff;
   border-left: 4px solid var(--warning-color);
   padding: 20px;
   border-radius: var(--border-radius);
@@ -436,7 +436,7 @@ header .btn-outline:hover {
 }
 
 .payment-alert p {
-  color: #e65100;
+  color: #1e40af;
   margin: 4px 0;
   line-height: 1.6;
 }
@@ -500,8 +500,8 @@ header .btn-outline:hover {
 
 .alert.warning {
   border-left-color: var(--warning-color);
-  background-color: #fff3e0;
-  color: #e65100;
+  background-color: #eff6ff;
+  color: #1e40af;
 }
 
 /* Raffle List (Home) - Modern Card Design */
@@ -579,7 +579,7 @@ header .btn-outline:hover {
 
 .prize-card.final-prize {
   border-color: var(--primary-color);
-  background: linear-gradient(135deg, #fff5f5, #ffffff);
+  background: linear-gradient(135deg, #eef6ff, #ffffff);
 }
 
 .prize-card.final-prize .prize-name {
@@ -607,19 +607,19 @@ header .btn-outline:hover {
   letter-spacing: 0.01em;
 }
 
-.tier-badge.a { background: #d32f2f; }
-.tier-badge.b { background: #1565c0; }
-.tier-badge.c { background: #f57c00; }
-.tier-badge.d { background: #7b1fa2; }
-.tier-badge.e { background: #00796b; }
-.tier-badge.f { background: #c2185b; }
-.tier-badge.g { background: #424242; }
-.tier-badge.h { background: #6d4c41; }
-.tier-badge.last { background: #000000; }
+.tier-badge.a { background: #1d4ed8; }
+.tier-badge.b { background: #2563eb; }
+.tier-badge.c { background: #3b82f6; }
+.tier-badge.d { background: #60a5fa; }
+.tier-badge.e { background: #0ea5e9; }
+.tier-badge.f { background: #0284c7; }
+.tier-badge.g { background: #334155; }
+.tier-badge.h { background: #64748b; }
+.tier-badge.last { background: #0f172a; }
 
 .final-badge {
-  background: linear-gradient(135deg, #ffd700, #ffaa00);
-  color: #333;
+  background: linear-gradient(135deg, #93c5fd, #3b82f6);
+  color: white;
   padding: 4px 12px;
   border-radius: 16px;
   font-size: 0.825rem;
@@ -755,15 +755,15 @@ header .btn-outline:hover {
   font-size: 1.6rem;
   font-weight: 700;
   padding: 28px 20px; /* Increased padding */
-  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  background: linear-gradient(135deg, #eff6ff, #e2e8f0);
   border-radius: var(--border-radius);
   margin-bottom: 20px;
   line-height: 1.4;
 }
 
 .result-content .final-result {
-  background: linear-gradient(135deg, #ffe0b2, #ffcc80);
-  color: #e65100;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1e3a8a;
 }
 
 .result-content p {
@@ -803,8 +803,8 @@ header .btn-outline:hover {
 }
 
 .status-badge.unused {
-  background: #c8e6c9;
-  color: #2e7d32;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .status-badge.used {
@@ -862,13 +862,13 @@ header .btn-outline:hover {
 }
 
 .status-badge.active {
-  background: #c8e6c9;
-  color: #2e7d32;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .status-badge.closed {
-  background: #ffcdd2;
-  color: #c62828;
+  background: #e5e7eb;
+  color: #475569;
 }
 
 .status-badge.completed {
