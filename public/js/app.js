@@ -37,7 +37,7 @@ function initRafflePage(raffleId) {
       e.preventDefault();
 
       const code = document.getElementById('verification_code').value.trim();
-      const name = document.getElementById('name').value.trim();
+      const username = document.getElementById('username').value.trim();
       const contact = document.getElementById('contact').value.trim();
       const drawBtn = document.getElementById('drawBtn');
 
@@ -45,8 +45,8 @@ function initRafflePage(raffleId) {
         alert('請輸入驗證碼');
         return;
       }
-      if (!name || !contact) {
-        alert('請填寫姓名和聯絡方式');
+      if (!username || !contact) {
+        alert('請填寫會員用戶名和聯絡方式');
         return;
       }
 
@@ -57,7 +57,7 @@ function initRafflePage(raffleId) {
         const result = await apiRequest(`/api/raffle/${currentRaffleId}/draw`, {
           method: 'POST',
           body: JSON.stringify({ 
-            name, 
+            username, 
             contact, 
             code
           }),

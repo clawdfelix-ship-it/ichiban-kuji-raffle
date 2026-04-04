@@ -461,7 +461,7 @@ app.get('/api/raffle/:id/winners', async (req, res) => {
 app.post('/api/raffle/:id/draw', async (req, res) => {
   const client = await pool.connect();
   try {
-    const { name, contact, code } = req.body;
+    const { username, contact, code } = req.body;
     const raffleId = parseInt(req.params.id);
     const userId = req.session.user?.id || null;
 
@@ -471,8 +471,8 @@ app.post('/api/raffle/:id/draw', async (req, res) => {
     if (!code) {
       return res.status(400).json({ error: '需要輸入抽獎驗證碼' });
     }
-    if (!name || !contact) {
-      return res.status(400).json({ error: '需要填寫姓名和聯絡方式' });
+    if (!username || !contact) {
+      return res.status(400).json({ error: '需要填寫會員用戶名和聯絡方式' });
     }
 
     await client.query('BEGIN');
@@ -609,7 +609,7 @@ app.post('/api/raffle/:id/draw', async (req, res) => {
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id
       `,
-      [raffleId, updatedPrize.id, name, contact, userId, verificationCode.id],
+      [raffleId, updatedPrize.id, username, contact, userId, verificationCode.id],
       client
     );
     const entryId = entryResult.rows[0].id;
@@ -619,7 +619,7 @@ app.post('/api/raffle/:id/draw', async (req, res) => {
         INSERT INTO winners (entry_id, raffle_id, prize_id, buyer_name, user_id)
         VALUES ($1, $2, $3, $4, $5)
       `,
-      [entryId, raffleId, updatedPrize.id, name, userId],
+      [entryId, raffleId, updatedPrize.id, username, userId],
       client
     );
 
