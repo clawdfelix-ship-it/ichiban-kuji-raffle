@@ -1042,7 +1042,7 @@ app.post('/api/admin/raffles/:id/generate-codes', async (req, res) => {
       const inserted = await dbQuery(
         `
           INSERT INTO verification_codes (raffle_id, code, assigned_user_id, assigned_at, assigned_by)
-          VALUES ($1, $2, $3, CASE WHEN $3 IS NULL THEN NULL ELSE CURRENT_TIMESTAMP END, $4)
+          VALUES ($1, $2, $3::INTEGER, CASE WHEN $3::INTEGER IS NULL THEN NULL ELSE CURRENT_TIMESTAMP END, $4::INTEGER)
           ON CONFLICT (code) DO NOTHING
           RETURNING code
         `,
