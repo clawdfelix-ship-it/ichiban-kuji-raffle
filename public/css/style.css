@@ -97,6 +97,36 @@ header p {
   justify-content: flex-end;
 }
 
+.site-logo {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+
+.site-logo img {
+  height: 44px;
+  width: auto;
+  max-width: 240px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.site-logo:focus-visible img {
+  outline: 2px solid rgba(255, 255, 255, 0.95);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .site-logo img {
+    height: 36px;
+    max-width: 200px;
+  }
+}
+
 .back-link {
   color: rgba(255, 255, 255, 0.95);
   text-decoration: none;
