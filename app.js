@@ -199,6 +199,10 @@ async function initDatabase() {
       );
     `);
 
+    await dbQuery('ALTER TABLE verification_codes ADD COLUMN IF NOT EXISTS assigned_user_id INTEGER NULL');
+    await dbQuery('ALTER TABLE verification_codes ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMP NULL');
+    await dbQuery('ALTER TABLE verification_codes ADD COLUMN IF NOT EXISTS assigned_by INTEGER NULL');
+
     const adminResult = await dbQuery('SELECT COUNT(*) as count FROM users WHERE is_admin = 1');
     const hasAdmin = adminResult.rows[0]?.count !== '0';
 
@@ -482,6 +486,17 @@ app.post('/api/raffle/:id/draw', async (req, res) => {
       return res.status(400).json({ error: '驗證碼無效或已使用' });
     }
     const verificationCode = codeResult.rows[0];
+
+    if (verificationCode.assigned_user_id) {
+      if (!req.session.user) {
+        await client.query('ROLLBACK');
+        return res.status(401).json({ error: '此驗證碼已分配給會員，請登入後再抽獎' });
+      }
+      if (Number(req.session.user.id) !== Number(verificationCode.assigned_user_id)) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: '此驗證碼已分配給其他會員' });
+      }
+    }
 
     const raffleResult = await dbQuery('SELECT * FROM raffles WHERE id = $1 FOR UPDATE', [raffleId], client);
     if (raffleResult.rows.length === 0) {
@@ -833,9 +848,10 @@ app.post('/api/admin/raffles/:id/status', async (req, res) => {
 // Generate verification codes (admin only)
 app.post('/api/admin/raffles/:id/generate-codes', async (req, res) => {
   try {
-    const { count } = req.body;
+    const { count, username } = req.body;
     const raffleId = parseInt(req.params.id);
     const numCount = parseInt(count);
+    const trimmedUsername = typeof username === 'string' ? username.trim() : '';
 
     if (!req.session.user || !req.session.user.is_admin) {
       return res.status(403).json({ error: '需要管理員權限' });
@@ -847,18 +863,27 @@ app.post('/api/admin/raffles/:id/generate-codes', async (req, res) => {
     if (numCount > 5000) {
       return res.status(400).json({ error: '一次最多生成 5000 個驗證碼' });
     }
+
+    let assignedUserId = null;
+    if (trimmedUsername) {
+      const userResult = await dbQuery('SELECT id FROM users WHERE username = $1 LIMIT 1', [trimmedUsername]);
+      if (userResult.rows.length === 0) {
+        return res.status(400).json({ error: '找不到此會員用戶名' });
+      }
+      assignedUserId = userResult.rows[0].id;
+    }
     
     const codes = [];
     while (codes.length < numCount) {
       const code = crypto.randomBytes(6).toString('hex');
       const inserted = await dbQuery(
         `
-          INSERT INTO verification_codes (raffle_id, code)
-          VALUES ($1, $2)
+          INSERT INTO verification_codes (raffle_id, code, assigned_user_id, assigned_at, assigned_by)
+          VALUES ($1, $2, $3, CASE WHEN $3 IS NULL THEN NULL ELSE CURRENT_TIMESTAMP END, $4)
           ON CONFLICT (code) DO NOTHING
           RETURNING code
         `,
-        [raffleId, code]
+        [raffleId, code, assignedUserId, req.session.user.id]
       );
       if (inserted.rows.length > 0) {
         codes.push(inserted.rows[0].code);
@@ -883,9 +908,12 @@ app.get('/api/admin/raffles/:id/codes', async (req, res) => {
       return res.status(403).json({ error: '需要管理員權限' });
     }
     const result = await dbQuery(`
-      SELECT * FROM verification_codes
-      WHERE raffle_id = $1
-      ORDER BY created_at DESC
+      SELECT vc.*, au.username as assigned_username, uu.username as used_username
+      FROM verification_codes vc
+      LEFT JOIN users au ON vc.assigned_user_id = au.id
+      LEFT JOIN users uu ON vc.user_id = uu.id
+      WHERE vc.raffle_id = $1
+      ORDER BY vc.created_at DESC
     `, [req.params.id]);
     
     res.json({ codes: result.rows });
