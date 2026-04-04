@@ -208,6 +208,9 @@ async function initDatabase() {
         used BOOLEAN DEFAULT FALSE,
         used_at TIMESTAMP NULL,
         user_id INTEGER NULL,
+        assigned_user_id INTEGER NULL,
+        assigned_at TIMESTAMP NULL,
+        assigned_by INTEGER NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(raffle_id) REFERENCES raffles(id)
       );
@@ -258,10 +261,27 @@ async function initDatabase() {
     console.log('Database initialized');
   } catch (err) {
     console.error('Error initializing database:', err);
+    throw err;
   }
 }
 
-initDatabase();
+const dbInit = (async () => {
+  if (!connectionString) return;
+  await initDatabase();
+})();
+
+app.use(async (req, res, next) => {
+  if (!connectionString) return next();
+  try {
+    await dbInit;
+    next();
+  } catch (err) {
+    if (req.path.startsWith('/api/')) {
+      return res.status(500).json({ error: 'Database init failed' });
+    }
+    return res.status(500).send('Database init failed');
+  }
+});
 
 // ===== Auth Routes (Public) =====
 
