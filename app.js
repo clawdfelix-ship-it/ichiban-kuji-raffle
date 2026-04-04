@@ -728,6 +728,97 @@ app.get('/admin/login', (req, res) => {
   res.render('login', { adminMode: true });
 });
 
+app.get('/admin/users', requireAdmin, (req, res) => {
+  res.render('admin/users');
+});
+
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    if (!req.session.user || !req.session.user.is_admin) {
+      return res.status(403).json({ error: '需要管理員權限' });
+    }
+
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const limit = 200;
+
+    const params = [];
+    let whereSql = '';
+    if (q) {
+      params.push(`%${q}%`);
+      whereSql = `WHERE u.username ILIKE $${params.length}`;
+    }
+
+    const result = await dbQuery(
+      `
+        SELECT
+          u.id,
+          u.username,
+          u.contact,
+          u.is_admin,
+          u.created_at,
+          COALESCE(e.cnt, 0) as entries_count,
+          COALESCE(vc_assign.cnt, 0) as codes_assigned_count,
+          COALESCE(vc_use.cnt, 0) as codes_used_count
+        FROM users u
+        LEFT JOIN (
+          SELECT user_id, COUNT(*)::int as cnt
+          FROM entries
+          WHERE user_id IS NOT NULL
+          GROUP BY user_id
+        ) e ON e.user_id = u.id
+        LEFT JOIN (
+          SELECT assigned_user_id, COUNT(*)::int as cnt
+          FROM verification_codes
+          WHERE assigned_user_id IS NOT NULL
+          GROUP BY assigned_user_id
+        ) vc_assign ON vc_assign.assigned_user_id = u.id
+        LEFT JOIN (
+          SELECT user_id, COUNT(*)::int as cnt
+          FROM verification_codes
+          WHERE user_id IS NOT NULL
+          GROUP BY user_id
+        ) vc_use ON vc_use.user_id = u.id
+        ${whereSql}
+        ORDER BY u.created_at DESC
+        LIMIT ${limit}
+      `,
+      params
+    );
+
+    res.json({ users: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/users/:id/reset-password', async (req, res) => {
+  try {
+    if (!req.session.user || !req.session.user.is_admin) {
+      return res.status(403).json({ error: '需要管理員權限' });
+    }
+
+    const userId = parseInt(req.params.id);
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
+    if (!userId) {
+      return res.status(400).json({ error: '用戶ID無效' });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: '新密碼至少 6 個字' });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    const updated = await dbQuery('UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING id', [hash, userId]);
+    if (updated.rows.length === 0) {
+      return res.status(404).json({ error: '會員不存在' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.post('/api/admin/reset', async (req, res) => {
   const client = await pool.connect();
   try {

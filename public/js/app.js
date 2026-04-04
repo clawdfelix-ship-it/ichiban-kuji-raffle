@@ -527,9 +527,84 @@ function renderPrizeList() {
   });
 }
 
+function initAdminUsersPage() {
+  const tbody = document.getElementById('usersTbody');
+  const searchInput = document.getElementById('userSearch');
+  const searchBtn = document.getElementById('searchBtn');
+
+  if (!tbody || !searchInput || !searchBtn) return;
+
+  async function loadUsers() {
+    const q = searchInput.value.trim();
+    const url = q ? `/api/admin/users?q=${encodeURIComponent(q)}` : '/api/admin/users';
+    const result = await apiRequest(url);
+    const users = result.users || [];
+
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="padding:16px;">沒有結果</td></tr>';
+      return;
+    }
+
+    let html = '';
+    users.forEach(u => {
+      html += `
+        <tr>
+          <td>${u.id}</td>
+          <td>${u.username || ''}${u.is_admin ? ' (admin)' : ''}</td>
+          <td>${u.contact || '-'}</td>
+          <td>${u.entries_count || 0}</td>
+          <td>${u.codes_assigned_count || 0}</td>
+          <td>${u.codes_used_count || 0}</td>
+          <td>${u.created_at ? new Date(u.created_at).toLocaleString('zh-HK') : ''}</td>
+          <td class="actions">
+            <button class="btn btn-sm btn-warning" data-action="reset" data-id="${u.id}" data-username="${u.username || ''}">重置密碼</button>
+          </td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = html;
+
+    tbody.querySelectorAll('button[data-action="reset"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const username = btn.dataset.username;
+        const password = prompt(`重置會員 ${username} 新密碼（至少 6 個字）`);
+        if (!password) return;
+        btn.disabled = true;
+        try {
+          await apiRequest(`/api/admin/users/${id}/reset-password`, {
+            method: 'POST',
+            body: JSON.stringify({ password })
+          });
+          alert('已重置密碼');
+        } catch (err) {
+          alert(err.message);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  searchBtn.addEventListener('click', () => {
+    loadUsers().catch(err => alert(err.message));
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      loadUsers().catch(err => alert(err.message));
+    }
+  });
+
+  loadUsers().catch(err => alert(err.message));
+}
+
 // ============================================
 // Export for inline script calls
 // ============================================
 window.initRafflePage = initRafflePage;
 window.initAdminDashboard = initAdminDashboard;
 window.initCreateRafflePage = initCreateRafflePage;
+window.initAdminUsersPage = initAdminUsersPage;
