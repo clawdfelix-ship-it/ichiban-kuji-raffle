@@ -39,48 +39,11 @@
   <script src="/js/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      console.log('=== Ichiban Kuji - My Page Load ===');
-      
-      // Get userId from URL query (fallback) or localStorage
-      let userId = null;
-      
-      // Try URL first - this works even if localStorage is blocked
-      const urlParams = new URLSearchParams(window.location.search);
-      userId = urlParams.get('userId');
-      
-      // If no userId in URL, try localStorage
-      if (!userId) {
-        const userJson = localStorage.getItem('ikr_user');
-        if (userJson) {
-          try {
-            const user = JSON.parse(userJson);
-            userId = user.id;
-            console.log('Got userId from localStorage:', userId);
-          } catch (e) {
-            console.error('Invalid user in localStorage', e);
-            localStorage.removeItem('ikr_user');
-          }
-        }
-      } else {
-        console.log('Got userId from URL:', userId);
-      }
-
-      if (!userId) {
-        console.log('No userId found, show login required');
-        document.getElementById('loginRequired').classList.remove('hidden');
-        return;
-      }
-
       document.getElementById('myContent').classList.remove('hidden');
 
       try {
-        const url = `/api/my/entries?userId=${userId}`;
-        console.log('Fetching entries from:', url);
-        
-        const result = await apiRequest(url);
-        console.log('API response:', result);
+        const result = await apiRequest('/api/my/entries');
         const entries = result.entries;
-        console.log('Got entries:', entries);
 
         const listEl = document.getElementById('entriesList');
         if (entries.length === 0) {
@@ -107,7 +70,11 @@
 
         listEl.innerHTML = html;
       } catch (err) {
-        console.error('Failed to load entries', err);
+        if (err.message.includes('需要登入')) {
+          document.getElementById('myContent').classList.add('hidden');
+          document.getElementById('loginRequired').classList.remove('hidden');
+          return;
+        }
         alert('獲取抽獎記錄失敗: ' + err.message);
       }
     });

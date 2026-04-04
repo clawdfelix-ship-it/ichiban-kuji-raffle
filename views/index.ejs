@@ -15,8 +15,17 @@
           <p>公平公開，即抽即中</p>
         </div>
         <div class="header-buttons">
-          <a href="/login" class="btn btn-secondary btn-sm">會員登入</a>
-          <a href="/admin" class="btn btn-secondary btn-sm">管理後台</a>
+          <% if (currentUser) { %>
+            <a href="/my" class="btn btn-secondary btn-sm">我的記錄</a>
+            <a href="/logout" class="btn btn-secondary btn-sm">登出</a>
+          <% } else { %>
+            <a href="/login" class="btn btn-secondary btn-sm">會員登入</a>
+          <% } %>
+          <% if (isAdmin) { %>
+            <a href="/admin" class="btn btn-secondary btn-sm">管理後台</a>
+          <% } else { %>
+            <a href="/admin/login" class="btn btn-secondary btn-sm">管理員登入</a>
+          <% } %>
         </div>
       </div>
     </div>

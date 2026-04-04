@@ -61,8 +61,8 @@
             body: JSON.stringify({ username, password, contact })
           });
           
-          alert('註冊成功！請登入');
-          window.location.href = '/login';
+          alert('註冊成功！');
+          window.location.href = '/my';
         } catch (err) {
           alert(err.message);
         }

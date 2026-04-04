@@ -32,14 +32,6 @@ function initRafflePage(raffleId) {
   const closeBtn = document.getElementById('closeResult');
   const resultContent = document.getElementById('resultContent');
 
-  // Get current user from localStorage
-  let currentUserId = null;
-  const userJson = localStorage.getItem('ikr_user');
-  if (userJson) {
-    const user = JSON.parse(userJson);
-    currentUserId = user.id;
-  }
-
   if (form) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -67,8 +59,7 @@ function initRafflePage(raffleId) {
           body: JSON.stringify({ 
             name, 
             contact, 
-            code,
-            userId: currentUserId 
+            code
           }),
         });
 

@@ -3,20 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>會員登入 - 一番賞線上抽獎</title>
+  <title><%= (typeof adminMode !== 'undefined' && adminMode) ? '管理員登入' : '會員登入' %> - 一番賞線上抽獎</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <header>
     <div class="container">
       <a href="/" class="back-link">← 返回首頁</a>
-      <h1>會員登入</h1>
+      <h1><%= (typeof adminMode !== 'undefined' && adminMode) ? '管理員登入' : '會員登入' %></h1>
     </div>
   </header>
 
   <main class="container">
     <div class="auth-form">
       <form id="loginForm">
+        <input type="hidden" id="adminModeFlag" value="<%= (typeof adminMode !== 'undefined' && adminMode) ? '1' : '0' %>">
         <div class="form-group">
           <label for="username">用戶名</label>
           <input type="text" id="username" name="username" required placeholder="輸入用戶名">
@@ -28,9 +29,11 @@
         <div class="form-actions">
           <button type="submit" class="btn btn-primary btn-large">登入</button>
         </div>
-        <p class="auth-footer">
-          未有帳號？<a href="/register">立即註冊</a>
-        </p>
+        <% if (!(typeof adminMode !== 'undefined' && adminMode)) { %>
+          <p class="auth-footer">
+            未有帳號？<a href="/register">立即註冊</a>
+          </p>
+        <% } %>
       </form>
     </div>
   </main>
@@ -56,13 +59,13 @@
             body: JSON.stringify({ username, password })
           });
           
-          // Store user in localStorage for simple auth
-          localStorage.setItem('ikr_user', JSON.stringify(result.user));
           alert('登入成功！');
-          // Delay to ensure localStorage is saved before navigation
-          setTimeout(() => {
-            window.location.href = '/my';
-          }, 100);
+          const isAdminMode = document.getElementById('adminModeFlag').value === '1';
+          if (isAdminMode && !result.user.is_admin) {
+            alert('此帳號不是管理員');
+            return;
+          }
+          window.location.href = isAdminMode ? '/admin' : '/my';
         } catch (err) {
           alert(err.message);
         }

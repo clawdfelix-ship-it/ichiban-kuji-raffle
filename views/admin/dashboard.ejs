@@ -11,6 +11,10 @@
     <div class="container">
       <h1>管理後台</h1>
       <p>Ichiban Kuji Admin Dashboard</p>
+      <div style="margin-top: 12px;">
+        <a href="/" class="btn btn-secondary btn-sm">返回首頁</a>
+        <a href="/logout" class="btn btn-secondary btn-sm">登出</a>
+      </div>
     </div>
   </header>
 
@@ -60,9 +64,7 @@
                 <td><%= new Date(raffle.created_at).toLocaleString('zh-HK') %></td>
                 <td class="actions">
                   <a href="/raffle/<%= raffle.id %>" target="_blank" class="btn btn-sm btn-secondary">查看</a>
-                  <button class="btn btn-sm btn-primary view-codes" 
-                          data-id="<%= raffle.id %>" 
-                          data-title="<%= raffle.title %>">驗證碼</button>
+                  <a href="/admin/raffles/<%= raffle.id %>/codes" class="btn btn-sm btn-primary">驗證碼</a>
                   <% if (raffle.status === 'active') { %>
                     <button class="btn btn-sm btn-warning change-status" 
                             data-id="<%= raffle.id %>" 
@@ -83,38 +85,14 @@
 
   <footer>
     <div class="container">
-      <p>Admin Dashboard - Ichiban Kuji Raffle System</p>
+      <p>Admin Dashboard - Ichiban Kuji Raffle</p>
     </div>
   </footer>
-
-  <!-- Verification Codes Modal -->
-  <div id="codesModal" class="modal hidden">
-    <div class="modal-content modal-large">
-      <h2 id="codesModalTitle">驗證碼管理</h2>
-      <div class="codes-generate">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="generateCount">生成數量</label>
-            <input type="number" id="generateCount" min="1" max="100" value="1">
-          </div>
-          <button id="generateBtn" class="btn btn-primary">生成</button>
-        </div>
-      </div>
-      <h3>已生成驗證碼 (<span id="codesCount">0</span>)</h3>
-      <div id="codesList" class="codes-list">
-        <!-- loaded by JS -->
-      </div>
-      <div class="form-actions">
-        <button id="closeCodesModal" class="btn btn-secondary">關閉</button>
-      </div>
-    </div>
-  </div>
 
   <script src="/js/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initAdminDashboard();
-      initCodesModal();
     });
   </script>
 </body>
