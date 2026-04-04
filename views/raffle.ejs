@@ -20,7 +20,7 @@
           <strong>剩餘</strong>: <%= remainingCount %> / <%= raffle.total_boxes %>
         </span>
         <span class="stat-badge price">
-          <strong>價格</strong>: HK$<%= raffle.price_per_box %>
+          <strong>價格</strong>: HK$<%= formatMoney(raffle.price_per_box) %> / NT$<%= formatMoney(raffle.price_per_box * twdPerHkd, 0) %>
         </span>
       </div>
     </div>

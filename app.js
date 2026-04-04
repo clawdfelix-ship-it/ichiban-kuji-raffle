@@ -55,6 +55,25 @@ if (!process.env.SESSION_SECRET) {
   console.warn('WARNING: SESSION_SECRET is not set. Using a random secret (sessions will reset on restart).');
 }
 
+const twdPerHkd = (() => {
+  const raw =
+    process.env.TWD_PER_HKD ||
+    process.env.HKD_TO_TWD ||
+    process.env.FX_TWD_PER_HKD ||
+    '4.0';
+  const n = parseFloat(raw);
+  return Number.isFinite(n) && n > 0 ? n : 4.0;
+})();
+
+function formatMoney(value, maxFractionDigits = 2) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  return n.toLocaleString('zh-HK', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxFractionDigits
+  });
+}
+
 app.use(
   session({
     secret: sessionSecret,
@@ -79,6 +98,8 @@ app.use(
 app.use((req, res, next) => {
   res.locals.currentUser = req.session.user || null;
   res.locals.isAdmin = !!req.session.user?.is_admin;
+  res.locals.twdPerHkd = twdPerHkd;
+  res.locals.formatMoney = formatMoney;
   next();
 });
 
