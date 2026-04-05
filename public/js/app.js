@@ -512,15 +512,15 @@ function initCreateRafflePage() {
       try {
         for (let i = 0; i < defaultPrizes.length; i++) {
           const p = defaultPrizes[i];
-          await apiRequest(`/api/admin/raffles/${currentRaffleId}/prizes/add`, {
+          const result = await apiRequest(`/api/admin/raffles/${currentRaffleId}/prizes/add`, {
             method: 'POST',
             body: JSON.stringify(p)
           });
+          prizesAdded.push({ ...p, id: result.prizeId });
           btn.textContent = `載入中... ${i + 1}/${defaultPrizes.length}`;
         }
 
-        // Reload the prize list
-        await loadPrizes();
+        renderPrizeList();
         alert(`預設 template 載入完成！已新增 ${defaultPrizes.length} 個獎品`);
       } catch (err) {
         alert(`載入失敗: ${err.message}`);
