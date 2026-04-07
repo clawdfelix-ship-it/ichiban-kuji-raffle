@@ -18,7 +18,7 @@ if (!connectionString) {
 }
 
 const pool = new Pool({
-  connectionString,
+  connectionString: connectionString || '',
   ssl: connectionString ? { rejectUnauthorized: false } : false
 });
 
@@ -60,7 +60,7 @@ if (isVercel) {
 }
 
 if (isVercel && !process.env.SESSION_SECRET) {
-  throw new Error('SESSION_SECRET is required on Vercel. Please set it in Vercel Environment Variables.');
+  console.error('WARNING: SESSION_SECRET is not set on Vercel. Sessions will reset on restart.');
 }
 
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
