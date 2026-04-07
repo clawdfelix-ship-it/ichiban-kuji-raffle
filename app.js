@@ -304,10 +304,7 @@ app.get('/register', (req, res) => {
 });
 
 // User my page - list my raffle entries
-app.get('/my', async (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/login');
-  }
+app.get('/my', requireAuth, async (req, res) => {
   res.render('my');
 });
 
@@ -914,4 +911,7 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
     try {
       await client.query('ROLLBACK');
     } catch (rollbackErr) {
-      console.error('Roll
+      console.error('Rollback failed:', rollbackErr);
+    }
+    console.error(err);
+    res.status(500).json({ error
