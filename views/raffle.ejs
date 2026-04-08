@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title><%= raffle.title %> - 一番賞線上抽獎</title>
+  <meta name="description" content="本平台提供台灣一番賞代購、代抽、代收與跨境轉送服務，所有抽選行為於台灣完成，香港地區僅提供商品領取與寄送。">
+  <title><%= raffle.title %> - 台灣一番賞委託代抽</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -33,26 +34,41 @@
   <main class="container">
     <% if (remainingCount <= 0) { %>
       <div class="alert warning">
-        <strong>此抽獎活動已完結</strong>，所有盒子已被抽完。
+        <strong>此代抽服務已完結</strong>，所有項目已被預定。
       </div>
     <% } %>
 
     <!-- Entry Form -->
     <% if (remainingCount > 0 && raffle.status === 'active') { %>
       <section class="entry-section">
-        <h2>參加抽獎</h2>
+        <h2>委託代抽</h2>
+
+        <div class="legal-notice" style="background: #e7f3ff; border: 1px solid #b6d4fe; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #084298; font-size: 14px; line-height: 1.5;">
+            <strong>付款說明：</strong>付款即委託本站參與台灣一番賞抽選，費用含代抽、物流及處理成本。抽選結果依台灣官方公佈，本站不干涉結果。
+          </p>
+        </div>
+
         <div class="payment-alert">
-          <p>🔒 <strong>需要驗證碼才能抽獎</strong></p>
-          <p>請先付款給管理員，獲得驗證碼後輸入下方抽獎</p>
+          <p>🔒 <strong>需要驗證碼才能委託代抽</strong></p>
+          <p>請先付款給管理員，獲得驗證碼後輸入下方完成委託</p>
           <div style="margin-top: 12px;">
-            <a class="btn btn-secondary btn-sm" target="_blank" rel="noopener" href="https://wa.me/85295713359?text=我要買盲盒">香港客服</a>
-            <a class="btn btn-secondary btn-sm" target="_blank" rel="noopener" href="https://wa.me/85295713359?text=我要買盲盒">台灣客服</a>
+            <a class="btn btn-secondary btn-sm" target="_blank" rel="noopener" href="https://wa.me/85295713359?text=我要預約一番賞代抽">香港客服</a>
+            <a class="btn btn-secondary btn-sm" target="_blank" rel="noopener" href="https://wa.me/85295713359?text=我要預約一番賞代抽">台灣客服</a>
           </div>
         </div>
         <div style="margin-bottom: 20px;">
           <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
             <input type="checkbox" id="batchModeToggle">
-            <span>啟用批量抽獎模式（一次輸入多個驗證碼）</span>
+            <span>啟用批量代抽模式（一次輸入多個驗證碼）</span>
+          </label>
+        </div>
+
+        <!-- Age Verification Checkbox -->
+        <div style="margin-bottom: 20px; padding: 12px; background: #f8f9fa; border-radius: 6px;">
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="ageConfirmation" required style="margin-top: 3px;">
+            <span style="font-size: 14px; line-height: 1.4;">我確認本人已年滿18歲，並了解本服務僅為台灣一番賞代抽委託，所有抽選行為均於台灣完成</span>
           </label>
         </div>
 
@@ -60,7 +76,7 @@
         <form id="drawForm" class="draw-form">
           <div class="form-group">
             <label for="verification_code">驗證碼</label>
-            <input type="text" id="verification_code" name="verification_code" autocomplete="one-time-code" required placeholder="請輸入管理員俾你的驗證碼">
+            <input type="text" id="verification_code" name="verification_code" autocomplete="one-time-code" required placeholder="請輸入管理員給你的驗證碼">
           </div>
           <div class="form-group">
             <label for="username">會員用戶名</label>
@@ -70,7 +86,7 @@
             <label for="contact">聯絡方式</label>
             <input type="text" id="contact" name="contact" required placeholder="請輸入電話或WhatsApp">
           </div>
-          <button type="submit" id="drawBtn" class="btn btn-primary btn-large">確認驗證碼，開始抽獎!</button>
+          <button type="submit" id="drawBtn" class="btn btn-primary btn-large">確認驗證碼，提交委託!</button>
         </form>
 
         <!-- Batch Mode -->
@@ -81,20 +97,20 @@
           </div>
           <div class="form-group">
             <label for="batch_username">會員用戶名</label>
-            <input type="text" id="batch_username" name="batch_username" required placeholder="所有抽獎都會用呢個用戶名" value="<%= currentUser ? currentUser.username : '' %>" <%= currentUser ? 'readonly' : '' %>>
+            <input type="text" id="batch_username" name="batch_username" required placeholder="所有代抽都會用呢個用戶名" value="<%= currentUser ? currentUser.username : '' %>" <%= currentUser ? 'readonly' : '' %>>
           </div>
           <div class="form-group">
             <label for="batch_contact">聯絡方式</label>
-            <input type="text" id="batch_contact" name="batch_contact" required placeholder="所有抽獎都會用呢個聯絡方式">
+            <input type="text" id="batch_contact" name="batch_contact" required placeholder="所有代抽都會用呢個聯絡方式">
           </div>
-          <button type="submit" id="batchDrawBtn" class="btn btn-primary btn-large">開始批量抽獎 (<span id="batchCount">0</span> 個)</button>
+          <button type="submit" id="batchDrawBtn" class="btn btn-primary btn-large">開始批量委託 (<span id="batchCount">0</span> 個)</button>
         </form>
       </section>
 
       <!-- Result Modal -->
       <div id="resultModal" class="modal hidden">
         <div class="modal-content">
-          <h2>抽獎結果</h2>
+          <h2>抽選結果</h2>
           <div id="resultContent" class="result-content">
             <!-- Filled by JS -->
           </div>
@@ -104,24 +120,24 @@
 
       <!-- Batch Results Area -->
       <div id="batchResultsArea" class="entry-section" style="margin-top: 24px; display: none;">
-        <h3>批量抽獎結果</h3>
+        <h3>批量抽選結果</h3>
         <div id="batchResultsContent" style="max-height: 500px; overflow-y: auto; margin-top: 12px;">
           <!-- Filled by JS -->
         </div>
       </div>
     <% } %>
 
-    <!-- Prize List by Pool -->
-    <section class="prize-section">
-      <h2>獎品列表</h2>
+    <!-- Item List by Pool -->
+    <section class="item-section">
+      <h2>商品內容一覽</h2>
       <% pools.forEach(pool => { %>
         <% if (pools.length > 1) { %>
-          <h3 class="pool-title">第 <%= pool.number %> 獎池</h3>
+          <h3 class="pool-title">第 <%= pool.number %> 商品池</h3>
         <% } %>
-        <div class="prize-list">
+        <div class="item-list">
           <% pool.prizes.forEach(prize => { %>
-            <div class="prize-card <%= prize.is_final ? 'final-prize' : '' %> <%= prize.remaining_count <= 0 ? 'sold-out' : '' %>">
-              <div class="prize-header">
+            <div class="item-card <%= prize.is_final ? 'final-item' : '' %> <%= prize.remaining_count <= 0 ? 'sold-out' : '' %>">
+              <div class="item-header">
                 <span class="tier-badge <%= prize.tier.toLowerCase() %>"><%= prize.tier %></span>
                 <% if (prize.is_final) { %>
                   <span class="final-badge">最終賞</span>
@@ -130,12 +146,12 @@
                   <%= prize.remaining_count %> / <%= prize.total_count %>
                 </span>
               </div>
-              <h3 class="prize-name"><%= prize.name %></h3>
+              <h3 class="item-name"><%= prize.name %></h3>
               <% if (prize.description) { %>
-                <p class="prize-description"><%= prize.description %></p>
+                <p class="item-description"><%= prize.description %></p>
               <% } %>
               <% if (prize.remaining_count <= 0) { %>
-                <div class="sold-out-overlay">已抽完</div>
+                <div class="sold-out-overlay">已預定</div>
               <% } %>
             </div>
           <% }) %>
@@ -143,28 +159,28 @@
       <% }) %>
     </section>
 
-    <!-- Winner List -->
-    <section class="winner-section">
-      <h2>中獎記錄</h2>
+    <!-- Result List -->
+    <section class="result-section">
+      <h2>抽選結果記錄</h2>
       <% if (winners.length === 0) { %>
         <div class="empty-state">
-          <p>暫無中獎記錄</p>
+          <p>暫無抽選結果記錄</p>
         </div>
       <% } else { %>
         <div class="winner-list">
           <table class="winner-table">
             <thead>
               <tr>
-                <th>中獎者</th>
-                <th>獎品</th>
+                <th>委託人</th>
+                <th>商品</th>
                 <th>時間</th>
               </tr>
             </thead>
             <tbody>
               <% winners.forEach(winner => { %>
                 <tr>
-                  <td data-label="中獎者"><%= winner.buyer_name %></td>
-                  <td data-label="獎品"><%= winner.prize_name %></td>
+                  <td data-label="委託人"><%= winner.buyer_name %></td>
+                  <td data-label="商品"><%= winner.prize_name %></td>
                   <td data-label="時間"><%= new Date(winner.drawn_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) %></td>
                 </tr>
               <% }) %>
@@ -177,7 +193,16 @@
 
   <footer>
     <div class="container">
-      <p>&copy; <%= new Date().getFullYear() %> Ichiban Kuji Raffle System</p>
+      <div class="legal-footer" style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 16px; text-align: left; font-size: 13px; line-height: 1.6; color: #495057;">
+        <strong>【服務聲明】</strong>
+        <ol style="margin: 8px 0 0 20px; padding: 0;">
+          <li>本平台僅提供台灣一番賞代購代抽服務，抽選與交易均於台灣進行。</li>
+          <li>本站不在香港經營任何抽獎、獎券、投注或賭博活動。</li>
+          <li>用戶須年滿18歲，下單即同意本聲明。</li>
+          <li>商品以台灣官方內容與機率為準，不設退換。</li>
+        </ol>
+      </div>
+      <p>&copy; <%= new Date().getFullYear() %> Ichiban Kuji Proxy Service</p>
       <p style="margin-top: 8px; opacity: 0.7;">Powered by TMA台灣分部-未來飛翔</p>
     </div>
   </footer>
@@ -189,6 +214,19 @@
     document.addEventListener('DOMContentLoaded', () => {
       const raffleId = parseInt(document.getElementById('raffleId').value, 10);
       initRafflePage(raffleId);
+
+      // Age confirmation check before submit
+      const ageCheck = document.getElementById('ageConfirmation');
+      const forms = [document.getElementById('drawForm'), document.getElementById('batchDrawForm')];
+      forms.forEach(form => {
+        form.addEventListener('submit', (e) => {
+          if (!ageCheck.checked) {
+            e.preventDefault();
+            alert('必須確認已年滿18歲才能使用本服務');
+            return false;
+          }
+        });
+      });
     });
   </script>
 </body>

@@ -1,5 +1,5 @@
 // ============================================
-// Ichiban Kuji Raffle - Frontend JavaScript
+// Ichiban Kuji Proxy - Frontend JavaScript
 // ============================================
 
 // Global variables for raffle page
@@ -51,7 +51,7 @@ function initRafflePage(raffleId) {
       }
 
       drawBtn.disabled = true;
-      drawBtn.textContent = '抽獎中...';
+      drawBtn.textContent = '處理中...';
 
       try {
         const result = await apiRequest(`/api/raffle/${currentRaffleId}/draw`, {
@@ -65,11 +65,11 @@ function initRafflePage(raffleId) {
 
         // Show result
         let html = `
-          <div class="result-prize ${result.prize.is_final ? 'final-result' : ''}">
-            ${result.prize.is_final ? '🎉 恭喜中得最終賞! 🎉<br>' : ''}
-            ${result.prize.name}
+          <div class="result-item ${result.item.is_final ? 'final-result' : ''}">
+            ${result.item.is_final ? '🎉 獲得最終賞! 🎉<br>' : ''}
+            ${result.item.name}
           </div>
-          <p>抽獎完成，請保留截圖並聯絡商家領獎</p>
+          <p>委託完成，請保留截圖並聯絡商家領取商品</p>
         `;
         resultContent.innerHTML = html;
         modal.classList.remove('hidden');
@@ -84,7 +84,7 @@ function initRafflePage(raffleId) {
         alert(err.message);
       } finally {
         drawBtn.disabled = false;
-        drawBtn.textContent = '開始抽獎!';
+        drawBtn.textContent = '確認驗證碼，提交委託!';
       }
     });
   }
@@ -171,16 +171,16 @@ function initRafflePage(raffleId) {
         return;
       }
       if (codes.length > 50) {
-        alert('批量抽獎最多支持 50 個驗證碼');
+        alert('批量處理最多支持 50 個驗證碼');
         return;
       }
 
-      if (!confirm(`確定要進行 ${codes.length} 次批量抽獎嗎？此操作無法復原。`)) {
+      if (!confirm(`確定要提交 ${codes.length} 個批量委託嗎？此操作無法復原。`)) {
         return;
       }
 
       drawBtn.disabled = true;
-      drawBtn.textContent = `批量抽獎進行中... 0/${codes.length}`;
+      drawBtn.textContent = `批量處理進行中... 0/${codes.length}`;
       batchResultsContent.innerHTML = '<p>正在處理，請稍候...</p>';
 
       try {
@@ -214,7 +214,7 @@ function initRafflePage(raffleId) {
             ? 'background: #f0fdf4; color: #166534;'
             : 'background: #fef2f2; color: #991b1b;';
           const resultText = item.success
-            ? `✅ ${item.prize.name}${item.prize.is_final ? ' (最終賞)' : ''}`
+            ? `✅ ${item.item.name}${item.item.is_final ? ' (最終賞)' : ''}`
             : `❌ ${item.error}`;
 
           html += `
@@ -230,7 +230,7 @@ function initRafflePage(raffleId) {
             </tbody>
           </table>
           <div style="margin-top: 16px;">
-            <button id="reloadAfterBatch" class="btn btn-secondary">重新整理頁面更新獎品剩餘數</button>
+            <button id="reloadAfterBatch" class="btn btn-secondary">重新整理頁面更新商品剩餘數</button>
           </div>
         `;
 
@@ -245,7 +245,7 @@ function initRafflePage(raffleId) {
         alert(err.message);
       } finally {
         drawBtn.disabled = false;
-        drawBtn.textContent = `開始批量抽獎 (${codes.length} 個)`;
+        drawBtn.textContent = `開始批量委託 (${codes.length} 個)`;
       }
     });
   }
@@ -261,7 +261,7 @@ function initAdminDashboard() {
       const newStatus = btn.dataset.status;
 
       const action = newStatus === 'active' ? '開啟' : '關閉';
-      if (!confirm(`確定要${action}此抽獎活動嗎?`)) {
+      if (!confirm(`確定要${action}此代抽服務嗎?`)) {
         return;
       }
 
@@ -280,7 +280,7 @@ function initAdminDashboard() {
   const resetBtn = document.getElementById('resetRafflesBtn');
   if (resetBtn) {
     resetBtn.addEventListener('click', async () => {
-      if (!confirm('確定要重置抽獎活動列表嗎？此操作會刪除所有抽獎、獎品、驗證碼及抽獎記錄。')) {
+      if (!confirm('確定要重置代抽服務列表嗎？此操作會刪除所有服務、商品、驗證碼及委託記錄。')) {
         return;
       }
       const token = prompt('請輸入重置 Token（Vercel env: ADMIN_RESET_TOKEN）');
@@ -400,8 +400,8 @@ function initCodesModal() {
 // ============================================
 // Create Raffle Page (Wizard)
 // ============================================
-let prizesAdded = [];
-let editingPrizeId = null;
+let itemsAdded = [];
+let editingItemId = null;
 
 function initCreateRafflePage() {
   // Step 1: Basic info
@@ -475,23 +475,23 @@ function initCreateRafflePage() {
     });
   }
 
-  // Add prize button
-  document.getElementById('addPrizeBtn').addEventListener('click', addPrize);
+  // Add item button
+  document.getElementById('addItemBtn').addEventListener('click', addItem);
 
   // Load default template button
   document.getElementById('loadDefaultTemplateBtn').addEventListener('click', () => {
     if (!currentRaffleId) {
-      alert('請先建立抽獎基本資訊');
+      alert('請先建立服務基本資訊');
       return;
     }
-    if (prizesAdded.length > 0) {
-      if (!confirm('已經有獎品，確定要載入預設 template 嗎？會新增多個獎品')) {
+    if (itemsAdded.length > 0) {
+      if (!confirm('已經有商品，確定要載入預設 template 嗎？會新增多個商品')) {
         return;
       }
     }
 
-    // Default Ichiban Kuji prize template (total 80 draws: H=40, A-G=40)
-    const defaultPrizes = [
+    // Default Ichiban Kuji item template (total 80: H=40, A-G=40)
+    const defaultItems = [
       { tier: 'A', name: 'OFF會參加券', description: '', total_count: 1, is_final: false },
       { tier: 'B', name: '攝影會參加券', description: '', total_count: 2, is_final: false },
       { tier: 'C', name: '見面會 - 10秒個人攝影券', description: '', total_count: 3, is_final: false },
@@ -503,33 +503,33 @@ function initCreateRafflePage() {
       { tier: 'LAST', name: '迪士尼入場券', description: '', total_count: 1, is_final: true, pool_number: 1 }
     ];
 
-    // Add all prizes one by one
+    // Add all items one by one
     async function addAll() {
       const btn = document.getElementById('loadDefaultTemplateBtn');
       btn.disabled = true;
-      btn.textContent = `載入中... 0/${defaultPrizes.length}`;
+      btn.textContent = `載入中... 0/${defaultItems.length}`;
 
       try {
-        for (let i = 0; i < defaultPrizes.length; i++) {
-          const p = defaultPrizes[i];
-          const result = await apiRequest(`/api/admin/raffles/${currentRaffleId}/prizes/add`, {
+        for (let i = 0; i < defaultItems.length; i++) {
+          const p = defaultItems[i];
+          const result = await apiRequest(`/api/admin/raffles/${currentRaffleId}/items/add`, {
             method: 'POST',
             body: JSON.stringify(p)
           });
-          prizesAdded.push({ ...p, id: result.prizeId });
-          btn.textContent = `載入中... ${i + 1}/${defaultPrizes.length}`;
+          itemsAdded.push({ ...p, id: result.itemId });
+          btn.textContent = `載入中... ${i + 1}/${defaultItems.length}`;
         }
 
-        renderPrizeList();
-        if (prizesAdded.length > 0) {
+        renderItemList();
+        if (itemsAdded.length > 0) {
           document.getElementById('finishBtn').disabled = false;
         }
-        alert(`預設 template 載入完成！已新增 ${defaultPrizes.length} 個獎品`);
+        alert(`預設 template 載入完成！已新增 ${defaultItems.length} 個商品`);
       } catch (err) {
         alert(`載入失敗: ${err.message}`);
       } finally {
         btn.disabled = false;
-        btn.textContent = '載入預設一番賞獎品 template';
+        btn.textContent = '載入預設一番賞商品 template';
       }
     }
 
@@ -538,8 +538,8 @@ function initCreateRafflePage() {
 
   // Back button
   document.getElementById('backToStep1').addEventListener('click', () => {
-    if (prizesAdded.length > 0) {
-      if (!confirm('離開後已新增的獎品會保留，確定要回去嗎?')) {
+    if (itemsAdded.length > 0) {
+      if (!confirm('離開後已新增的商品會保留，確定要回去嗎?')) {
         return;
       }
     }
@@ -553,22 +553,22 @@ function initCreateRafflePage() {
   });
 }
 
-async function addPrize() {
+async function addItem() {
   if (!currentRaffleId) {
-    alert('請先建立抽獎基本資訊');
+    alert('請先建立服務基本資訊');
     return;
   }
 
   const tier = document.getElementById('tier').value;
-  const name = document.getElementById('prize_name').value.trim();
-  const description = document.getElementById('prize_description').value.trim();
+  const name = document.getElementById('item_name').value.trim();
+  const description = document.getElementById('item_description').value.trim();
   const image_url = document.getElementById('image_url').value.trim();
   const total_count = document.getElementById('total_count').value;
   const is_final = document.getElementById('is_final').checked;
   const pool_number = document.getElementById('pool_number').value || 1;
 
   if (!name || !total_count) {
-    alert('請填寫獎品名稱和數量');
+    alert('請填寫商品名稱和數量');
     return;
   }
 
@@ -583,42 +583,42 @@ async function addPrize() {
       pool_number: is_final ? parseInt(pool_number, 10) : null
     };
 
-    if (editingPrizeId) {
-      await apiRequest(`/api/admin/raffles/${currentRaffleId}/prizes/${editingPrizeId}`, {
+    if (editingItemId) {
+      await apiRequest(`/api/admin/raffles/${currentRaffleId}/items/${editingItemId}`, {
         method: 'PUT',
         body: JSON.stringify(payload)
       });
 
-      prizesAdded = prizesAdded.map(p =>
-        p.id === editingPrizeId ? { ...p, ...payload, total_count: payload.total_count } : p
+      itemsAdded = itemsAdded.map(p =>
+        p.id === editingItemId ? { ...p, ...payload, total_count: payload.total_count } : p
       );
-      editingPrizeId = null;
-      document.getElementById('addPrizeBtn').textContent = '新增此獎品';
+      editingItemId = null;
+      document.getElementById('addItemBtn').textContent = '新增此商品';
     } else {
-      const result = await apiRequest(`/api/admin/raffles/${currentRaffleId}/prizes/add`, {
+      const result = await apiRequest(`/api/admin/raffles/${currentRaffleId}/items/add`, {
         method: 'POST',
         body: JSON.stringify(payload)
       });
 
-      prizesAdded.push({
-        id: result.prizeId,
+      itemsAdded.push({
+        id: result.itemId,
         ...payload
       });
     }
 
     // Refresh display
-    renderPrizeList();
+    renderItemList();
 
     // Clear form
-    document.getElementById('prize_name').value = '';
-    document.getElementById('prize_description').value = '';
+    document.getElementById('item_name').value = '';
+    document.getElementById('item_description').value = '';
     document.getElementById('image_url').value = '';
     document.getElementById('total_count').value = '1';
     document.getElementById('is_final').checked = false;
     document.getElementById('poolNumberGroup').style.display = 'none';
 
     // Enable finish button
-    if (prizesAdded.length > 0) {
+    if (itemsAdded.length > 0) {
       document.getElementById('finishBtn').disabled = false;
     }
 
@@ -627,33 +627,33 @@ async function addPrize() {
   }
 }
 
-function renderPrizeList() {
-  const listEl = document.getElementById('prizeList');
-  const countEl = document.getElementById('prizeCount');
+function renderItemList() {
+  const listEl = document.getElementById('itemList');
+  const countEl = document.getElementById('itemCount');
 
-  countEl.textContent = prizesAdded.length;
+  countEl.textContent = itemsAdded.length;
 
-  if (prizesAdded.length === 0) {
-    listEl.innerHTML = `<div class="empty-state"><p>尚無獎品，請在右側新增</p></div>`;
+  if (itemsAdded.length === 0) {
+    listEl.innerHTML = `<div class="empty-state"><p>尚無商品，請在右側新增</p></div>`;
     return;
   }
 
   let html = '';
-  prizesAdded.forEach((prize) => {
+  itemsAdded.forEach((item) => {
     html += `
-      <div class="prize-admin-card ${prize.is_final ? 'final' : ''}">
-        <div class="prize-admin-info">
-          <h4>${prize.tier} - ${prize.name}</h4>
-          <p>數量: ${prize.total_count} ${prize.is_final ? '(最終賞)' : ''}</p>
+      <div class="item-admin-card ${item.is_final ? 'final' : ''}">
+        <div class="item-admin-info">
+          <h4>${item.tier} - ${item.name}</h4>
+          <p>數量: ${item.total_count} ${item.is_final ? '(最終賞)' : ''}</p>
         </div>
-        <div class="prize-admin-actions">
-          <div class="prize-admin-qty">
-            <button class="btn btn-sm btn-secondary" data-action="dec" data-id="${prize.id}">-</button>
-            <span class="prize-admin-qty-text">${prize.total_count}</span>
-            <button class="btn btn-sm btn-secondary" data-action="inc" data-id="${prize.id}">+</button>
+        <div class="item-admin-actions">
+          <div class="item-admin-qty">
+            <button class="btn btn-sm btn-secondary" data-action="dec" data-id="${item.id}">-</button>
+            <span class="item-admin-qty-text">${item.total_count}</span>
+            <button class="btn btn-sm btn-secondary" data-action="inc" data-id="${item.id}">+</button>
           </div>
-          <button class="btn btn-sm btn-primary" data-action="edit" data-id="${prize.id}">編輯</button>
-          <button class="btn btn-sm btn-warning" data-action="delete" data-id="${prize.id}">刪除</button>
+          <button class="btn btn-sm btn-primary" data-action="edit" data-id="${item.id}">編輯</button>
+          <button class="btn btn-sm btn-warning" data-action="delete" data-id="${item.id}">刪除</button>
         </div>
       </div>
     `;
@@ -665,36 +665,36 @@ function renderPrizeList() {
     btn.addEventListener('click', async () => {
       const id = parseInt(btn.dataset.id, 10);
       const action = btn.dataset.action;
-      const prize = prizesAdded.find(p => p.id === id);
-      if (!prize) return;
+      const item = itemsAdded.find(p => p.id === id);
+      if (!item) return;
 
       if (action === 'edit') {
-        editingPrizeId = id;
-        document.getElementById('tier').value = prize.tier;
-        document.getElementById('prize_name').value = prize.name || '';
-        document.getElementById('prize_description').value = prize.description || '';
-        document.getElementById('image_url').value = prize.image_url || '';
-        document.getElementById('total_count').value = String(prize.total_count || 1);
-        document.getElementById('is_final').checked = !!prize.is_final;
-        document.getElementById('poolNumberGroup').style.display = prize.is_final ? 'block' : 'none';
-        if (prize.is_final) {
-          document.getElementById('pool_number').value = String(prize.pool_number || 1);
+        editingItemId = id;
+        document.getElementById('tier').value = item.tier;
+        document.getElementById('item_name').value = item.name || '';
+        document.getElementById('item_description').value = item.description || '';
+        document.getElementById('image_url').value = item.image_url || '';
+        document.getElementById('total_count').value = String(item.total_count || 1);
+        document.getElementById('is_final').checked = !!item.is_final;
+        document.getElementById('poolNumberGroup').style.display = item.is_final ? 'block' : 'none';
+        if (item.is_final) {
+          document.getElementById('pool_number').value = String(item.pool_number || 1);
         }
-        document.getElementById('addPrizeBtn').textContent = '更新獎品';
+        document.getElementById('addItemBtn').textContent = '更新商品';
         return;
       }
 
       if (action === 'delete') {
-        if (!confirm('確定要刪除此獎品嗎?')) return;
+        if (!confirm('確定要刪除此商品嗎?')) return;
         try {
-          await apiRequest(`/api/admin/raffles/${currentRaffleId}/prizes/${id}`, { method: 'DELETE' });
-          prizesAdded = prizesAdded.filter(p => p.id !== id);
-          if (editingPrizeId === id) {
-            editingPrizeId = null;
-            document.getElementById('addPrizeBtn').textContent = '新增此獎品';
+          await apiRequest(`/api/admin/raffles/${currentRaffleId}/items/${item.id}`, { method: 'DELETE' });
+          itemsAdded = itemsAdded.filter(p => p.id !== id);
+          if (editingItemId === id) {
+            editingItemId = null;
+            document.getElementById('addItemBtn').textContent = '新增此商品';
           }
-          renderPrizeList();
-          if (prizesAdded.length === 0) {
+          renderItemList();
+          if (itemsAdded.length === 0) {
             document.getElementById('finishBtn').disabled = true;
           }
         } catch (err) {
@@ -705,24 +705,24 @@ function renderPrizeList() {
 
       if (action === 'inc' || action === 'dec') {
         const delta = action === 'inc' ? 1 : -1;
-        const nextTotal = parseInt(prize.total_count, 10) + delta;
+        const nextTotal = parseInt(item.total_count, 10) + delta;
         if (!nextTotal || nextTotal < 1) return;
         btn.disabled = true;
         try {
-          await apiRequest(`/api/admin/raffles/${currentRaffleId}/prizes/${id}`, {
+          await apiRequest(`/api/admin/raffles/${currentRaffleId}/items/${item.id}`, {
             method: 'PUT',
             body: JSON.stringify({
-              tier: prize.tier,
-              name: prize.name,
-              description: prize.description,
-              image_url: prize.image_url,
+              tier: item.tier,
+              name: item.name,
+              description: item.description,
+              image_url: item.image_url,
               total_count: nextTotal,
-              is_final: !!prize.is_final,
-              pool_number: prize.is_final ? prize.pool_number || 1 : null
+              is_final: !!item.is_final,
+              pool_number: item.is_final ? item.pool_number || 1 : null
             })
           });
-          prizesAdded = prizesAdded.map(p => (p.id === id ? { ...p, total_count: nextTotal } : p));
-          renderPrizeList();
+          itemsAdded = itemsAdded.map(p => (p.id === id ? { ...p, total_count: nextTotal } : p));
+          renderItemList();
         } catch (err) {
           alert(err.message);
         } finally {

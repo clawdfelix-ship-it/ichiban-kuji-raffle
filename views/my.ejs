@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>我的抽獎記錄 - 一番賞線上抽獎</title>
+  <meta name="description" content="本平台提供台灣一番賞代購、代抽、代收與跨境轉送服務，所有抽選行為於台灣完成，香港地區僅提供商品領取與寄送。">
+  <title>我的商品 - 台灣一番賞委託代抽</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -14,19 +15,19 @@
         <img src="/img/mirai-3.png" alt="TMA台灣分部-未來飛翔">
       </a>
       <a href="/" class="back-link">← 返回首頁</a>
-      <h1>我的抽獎記錄</h1>
+      <h1>我的商品記錄</h1>
     </div>
   </header>
 
   <main class="container">
     <div id="loginRequired" class="empty-state hidden">
-      <p>請先登入會員才能查看你的抽獎記錄</p>
+      <p>請先登入會員才能查看你的商品記錄</p>
       <a href="/login" class="btn btn-primary">立即登入</a>
     </div>
 
     <div id="myContent" class="hidden">
       <section class="user-section">
-        <h2>我的中獎記錄</h2>
+        <h2>我的獲得商品</h2>
         <div id="entriesList" class="user-winnings">
           <!-- loaded by JS -->
         </div>
@@ -36,7 +37,16 @@
 
   <footer>
     <div class="container">
-      <p>&copy; <%= new Date().getFullYear() %> Ichiban Kuji Raffle System</p>
+      <div class="legal-footer" style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 16px; text-align: left; font-size: 13px; line-height: 1.6; color: #495057;">
+        <strong>【服務聲明】</strong>
+        <ol style="margin: 8px 0 0 20px; padding: 0;">
+          <li>本平台僅提供台灣一番賞代購代抽服務，抽選與交易均於台灣進行。</li>
+          <li>本站不在香港經營任何抽獎、獎券、投注或賭博活動。</li>
+          <li>用戶須年滿18歲，下單即同意本聲明。</li>
+          <li>商品以台灣官方內容與機率為準，不設退換。</li>
+        </ol>
+      </div>
+      <p>&copy; <%= new Date().getFullYear() %> Ichiban Kuji Proxy Service</p>
       <p style="margin-top: 8px; opacity: 0.7;">Powered by TMA台灣分部-未來飛翔</p>
     </div>
   </footer>
@@ -53,7 +63,7 @@
 
         const listEl = document.getElementById('entriesList');
         if (entries.length === 0) {
-          listEl.innerHTML = '<div class="empty-state"><p>你暫時未有抽獎記錄</p></div>';
+          listEl.innerHTML = '<div class="empty-state"><p>你暫時未有代抽記錄</p></div>';
           return;
         }
 
@@ -81,7 +91,7 @@
           document.getElementById('loginRequired').classList.remove('hidden');
           return;
         }
-        alert('獲取抽獎記錄失敗: ' + err.message);
+        alert('獲取代抽記錄失敗: ' + err.message);
       }
     });
   </script>

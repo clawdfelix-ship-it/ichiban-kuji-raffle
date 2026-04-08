@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>建立新抽獎 - 管理後台</title>
+  <meta name="description" content="本平台提供台灣一番賞代購、代抽、代收與跨境轉送服務，所有抽選行為於台灣完成，香港地區僅提供商品領取與寄送。">
+  <title>建立新代抽服務 - 管理後台</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -14,7 +15,7 @@
         <img src="/img/mirai-3.png" alt="TMA台灣分部-未來飛翔">
       </a>
       <a href="/admin" class="back-link">← 返回後台</a>
-      <h1>建立新一番賞抽獎</h1>
+      <h1>建立新台灣一番賞代抽服務</h1>
     </div>
   </header>
 
@@ -25,7 +26,7 @@
         <h2>基本資訊</h2>
         <form id="basicInfoForm" class="form-card">
           <div class="form-group">
-            <label for="title">抽獎標題</label>
+            <label for="title">服務標題</label>
             <input type="text" id="title" name="title" required placeholder="例如: 海賊王一番賞">
           </div>
           <div class="form-group">
@@ -37,7 +38,7 @@
           </div>
           <div class="form-group">
             <label for="description">描述</label>
-            <textarea id="description" name="description" rows="3" placeholder="簡單描述這個抽獎活動"></textarea>
+            <textarea id="description" name="description" rows="3" placeholder="簡單描述這個代抽服務"></textarea>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -52,33 +53,33 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="num_pools">獎池數量 (分池最終賞)</label>
+              <label for="num_pools">商品池數量 (分池最終賞)</label>
               <input type="number" id="num_pools" name="num_pools" min="1" value="1">
               <small>如果不分池請留 1</small>
             </div>
           </div>
           <div class="form-actions">
-            <button type="submit" class="btn btn-primary btn-large">下一步: 新增獎品</button>
+            <button type="submit" class="btn btn-primary btn-large">下一步: 新增商品</button>
           </div>
         </form>
       </div>
 
-      <!-- Step 2: Add Prizes -->
+      <!-- Step 2: Add Items -->
       <div class="wizard-step" id="step2">
-        <h2>新增獎品</h2>
-        <div class="prize-management">
-          <div class="current-prizes">
-          <h3>已新增獎品 (<span id="prizeCount">0</span>)</h3>
-          <div id="prizeList" class="prize-list-admin">
+        <h2>新增商品</h2>
+        <div class="item-management">
+          <div class="current-items">
+          <h3>已新增商品 (<span id="itemCount">0</span>)</h3>
+          <div id="itemList" class="item-list-admin">
             <div class="empty-state">
-              <p>尚無獎品，請在右側新增</p>
+              <p>尚無商品，請在右側新增</p>
             </div>
           </div>
         </div>
 
-        <div class="add-prize-form">
-          <h3>新增獎品</h3>
-          <form id="addPrizeForm" class="form-card">
+        <div class="add-item-form">
+          <h3>新增商品</h3>
+          <form id="addItemForm" class="form-card">
             <div class="form-group">
               <label for="tier">獎級</label>
               <select id="tier" name="tier" required>
@@ -94,12 +95,12 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="prize_name">獎品名稱</label>
-              <input type="text" id="prize_name" name="prize_name" required placeholder="例如: 路飛手辦">
+              <label for="item_name">商品名稱</label>
+              <input type="text" id="item_name" name="item_name" required placeholder="例如: 路飛手辦">
             </div>
             <div class="form-group">
-              <label for="prize_description">描述 (可選)</label>
-              <textarea id="prize_description" name="prize_description" rows="2"></textarea>
+              <label for="item_description">描述 (可選)</label>
+              <textarea id="item_description" name="item_description" rows="2"></textarea>
             </div>
             <div class="form-group">
               <label for="image_url">圖片網址 (可選)</label>
@@ -116,13 +117,13 @@
               </label>
             </div>
             <div class="form-group" id="poolNumberGroup" style="display: none;">
-              <label for="pool_number">獎池編號</label>
+              <label for="pool_number">商品池編號</label>
               <input type="number" id="pool_number" name="pool_number" min="1" value="1">
-              <small>最終賞屬於哪個獎池</small>
+              <small>最終賞屬於哪個商品池</small>
             </div>
             <div class="form-actions">
-              <button type="button" id="addPrizeBtn" class="btn btn-primary">新增此獎品</button>
-              <button type="button" id="loadDefaultTemplateBtn" class="btn btn-secondary">載入預設一番賞獎品 template</button>
+              <button type="button" id="addItemBtn" class="btn btn-primary">新增此商品</button>
+              <button type="button" id="loadDefaultTemplateBtn" class="btn btn-secondary">載入預設一番賞商品 template</button>
             </div>
           </form>
         </div>
@@ -138,7 +139,16 @@
 
   <footer>
     <div class="container">
-      <p>&copy; <%= new Date().getFullYear() %> Ichiban Kuji Raffle System</p>
+      <div class="legal-footer" style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 16px; text-align: left; font-size: 13px; line-height: 1.6; color: #495057;">
+        <strong>【服務聲明】</strong>
+        <ol style="margin: 8px 0 0 20px; padding: 0;">
+          <li>本平台僅提供台灣一番賞代購代抽服務，抽選與交易均於台灣進行。</li>
+          <li>本站不在香港經營任何抽獎、獎券、投注或賭博活動。</li>
+          <li>用戶須年滿18歲，下單即同意本聲明。</li>
+          <li>商品以台灣官方內容與機率為準，不設退換。</li>
+        </ol>
+      </div>
+      <p>&copy; <%= new Date().getFullYear() %> Ichiban Kuji Proxy Service</p>
       <p style="margin-top: 8px; opacity: 0.7;">Powered by TMA台灣分部-未來飛翔</p>
     </div>
   </footer>

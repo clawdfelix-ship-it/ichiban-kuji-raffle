@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>管理後台 - 一番賞線上抽獎</title>
+  <meta name="description" content="本平台提供台灣一番賞代購、代抽、代收與跨境轉送服務，所有抽選行為於台灣完成，香港地區僅提供商品領取與寄送。">
+  <title>管理後台 - 台灣一番賞委託代抽</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -24,18 +25,19 @@
 
   <main class="container">
     <div class="admin-header">
-      <h2>抽獎活動列表</h2>
+      <h2>代抽服務列表</h2>
       <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end;">
         <a href="/admin/users" class="btn btn-secondary">會員管理</a>
+        <a href="/admin/codes" class="btn btn-primary">驗證碼管理</a>
         <button id="resetRafflesBtn" class="btn btn-warning">重置列表</button>
-        <a href="/admin/create" class="btn btn-primary">建立新抽獎</a>
+        <a href="/admin/create" class="btn btn-primary">建立新代抽服務</a>
       </div>
     </div>
 
     <% if (raffles.length === 0) { %>
       <div class="empty-state">
-        <p>尚無任何抽獎活動</p>
-        <a href="/admin/create" class="btn btn-primary">建立第一個抽獎</a>
+        <p>尚無任何代抽服務</p>
+        <a href="/admin/create" class="btn btn-primary">建立第一個代抽服務</a>
       </div>
     <% } else { %>
       <div class="admin-table-wrapper">
@@ -59,7 +61,7 @@
                 <td>
                   <span class="status-badge <%= raffle.status %>">
                     <% if (raffle.status === 'active') { %>
-                      進行中
+                      開放中
                     <% } else if (raffle.status === 'closed') { %>
                       已關閉
                     <% } else if (raffle.status === 'completed') { %>
@@ -93,7 +95,16 @@
 
   <footer>
     <div class="container">
-      <p>&copy; <%= new Date().getFullYear() %> Ichiban Kuji Raffle System</p>
+      <div class="legal-footer" style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 16px; text-align: left; font-size: 13px; line-height: 1.6; color: #495057;">
+        <strong>【服務聲明】</strong>
+        <ol style="margin: 8px 0 0 20px; padding: 0;">
+          <li>本平台僅提供台灣一番賞代購代抽服務，抽選與交易均於台灣進行。</li>
+          <li>本站不在香港經營任何抽獎、獎券、投注或賭博活動。</li>
+          <li>用戶須年滿18歲，下單即同意本聲明。</li>
+          <li>商品以台灣官方內容與機率為準，不設退換。</li>
+        </ol>
+      </div>
+      <p>&copy; <%= new Date().getFullYear() %> Ichiban Kuji Proxy Service</p>
       <p style="margin-top: 8px; opacity: 0.7;">Powered by TMA台灣分部-未來飛翔</p>
     </div>
   </footer>
