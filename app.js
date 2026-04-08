@@ -886,7 +886,6 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
         const displayPrizeName = majorTiers.has(updatedPrize.tier) ? updatedPrize.name : '親筆簽名拍立得';
 
         await client.query('COMMIT');
-        await client.release();
 
         successCount++;
 
