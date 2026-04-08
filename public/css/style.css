@@ -363,6 +363,7 @@ header .btn-outline:hover {
   font-size: 16px; /* Larger font to prevent iOS zoom */
   font-family: inherit;
   background-color: white;
+  color: var(--text-primary);
   min-height: 48px;
   transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-fast);
   will-change: border-color, box-shadow;
@@ -380,6 +381,18 @@ header .btn-outline:hover {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.22);
   transform: translateY(-1px);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+.form-group input::-webkit-input-placeholder,
+.form-group textarea::-webkit-input-placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
 }
 
 .form-group small {
