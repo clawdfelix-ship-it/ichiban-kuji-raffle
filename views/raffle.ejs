@@ -167,21 +167,14 @@
           <p>暫無抽選結果記錄</p>
         </div>
       <% } else { %>
-        <div class="winner-list">
-          <table class="winner-table">
-            <thead>
-              <tr>
-                <th>委託人</th>
-                <th>商品</th>
-                <th>時間</th>
-              </tr>
-            </thead>
+        <div style="background: var(--card-bg); border-radius: var(--border-radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid rgba(0, 0, 0, 0.04);">
+          <table style="width: 100%; border-collapse: collapse;">
             <tbody>
               <% winners.forEach(winner => { %>
                 <tr>
-                  <td data-label="委託人"><%= winner.buyer_name %></td>
-                  <td data-label="商品"><%= winner.prize_name %></td>
-                  <td data-label="時間"><%= new Date(winner.drawn_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) %></td>
+                  <td style="padding: 10px 14px; border-bottom: 1px solid var(--border-color); width: 18%;"><%= winner.buyer_name %></td>
+                  <td style="padding: 10px 14px; border-bottom: 1px solid var(--border-color);"><%= winner.prize_name %></td>
+                  <td style="padding: 10px 14px; border-bottom: 1px solid var(--border-color); width: 30%; color: var(--text-secondary); font-size: 0.9rem;"><%= new Date(winner.drawn_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) %></td>
                 </tr>
               <% }) %>
             </tbody>
