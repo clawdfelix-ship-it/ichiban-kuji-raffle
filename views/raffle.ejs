@@ -134,10 +134,10 @@
         <% if (pools.length > 1) { %>
           <h3 class="pool-title">第 <%= pool.number %> 商品池</h3>
         <% } %>
-        <div class="item-list">
+        <div class="prize-list">
           <% pool.prizes.forEach(prize => { %>
-            <div class="item-card <%= prize.is_final ? 'final-item' : '' %> <%= prize.remaining_count <= 0 ? 'sold-out' : '' %>">
-              <div class="item-header">
+            <div class="prize-card <%= prize.is_final ? 'final-prize' : '' %> <%= prize.remaining_count <= 0 ? 'sold-out' : '' %>">
+              <div class="prize-header">
                 <span class="tier-badge <%= prize.tier.toLowerCase() %>"><%= prize.tier %></span>
                 <% if (prize.is_final) { %>
                   <span class="final-badge">最終賞</span>
@@ -146,9 +146,9 @@
                   <%= prize.remaining_count %> / <%= prize.total_count %>
                 </span>
               </div>
-              <h3 class="item-name"><%= prize.name %></h3>
+              <h3 class="prize-name"><%= prize.name %></h3>
               <% if (prize.description) { %>
-                <p class="item-description"><%= prize.description %></p>
+                <p class="prize-description"><%= prize.description %></p>
               <% } %>
               <% if (prize.remaining_count <= 0) { %>
                 <div class="sold-out-overlay">已預定</div>
