@@ -408,13 +408,16 @@ function initCreateRafflePage() {
   const basicForm = document.getElementById('basicInfoForm');
   const isFinalCheckbox = document.getElementById('is_final');
   const poolNumberGroup = document.getElementById('poolNumberGroup');
-  const coverInput = document.getElementById('cover_image');
+  const coverFileInput = document.getElementById('cover_image_file');
+  const coverUrlInput = document.getElementById('cover_image_url');
   const coverPreview = document.getElementById('coverPreview');
   const coverPreviewImg = document.getElementById('coverPreviewImg');
+  const uploadCoverBtn = document.getElementById('uploadCoverBtn');
+  const uploadStatus = document.getElementById('uploadStatus');
 
-  if (coverInput && coverPreview && coverPreviewImg) {
-    coverInput.addEventListener('change', () => {
-      const file = coverInput.files && coverInput.files[0];
+  if (coverFileInput && coverPreview && coverPreviewImg) {
+    coverFileInput.addEventListener('change', () => {
+      const file = coverFileInput.files && coverFileInput.files[0];
       if (!file) {
         coverPreview.style.display = 'none';
         coverPreviewImg.removeAttribute('src');
@@ -422,6 +425,42 @@ function initCreateRafflePage() {
       }
       coverPreview.style.display = 'block';
       coverPreviewImg.src = URL.createObjectURL(file);
+    });
+  }
+
+  // Upload cover image to server
+  if (uploadCoverBtn) {
+    uploadCoverBtn.addEventListener('click', async () => {
+      const file = coverFileInput.files && coverFileInput.files[0];
+      if (!file) {
+        alert('請先選擇一個圖片文件');
+        return;
+      }
+
+      uploadCoverBtn.disabled = true;
+      uploadStatus.style.display = 'block';
+      uploadStatus.textContent = '正在上傳...';
+      uploadStatus.style.color = '#666';
+
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const result = await apiRequest('/api/admin/upload-image', {
+          method: 'POST',
+          body: formData,
+        });
+
+        // Auto-fill the URL
+        coverUrlInput.value = result.url;
+        uploadStatus.textContent = '✅ 上傳成功！URL 已自動填充';
+        uploadStatus.style.color = '#28a745';
+      } catch (err) {
+        uploadStatus.textContent = '❌ 上傳失敗: ' + err.message;
+        uploadStatus.style.color = '#dc3545';
+      } finally {
+        uploadCoverBtn.disabled = false;
+      }
     });
   }
 

@@ -5,6 +5,8 @@ const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const crypto = require('crypto');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -22,10 +24,34 @@ const pool = new Pool({
   ssl: connectionString ? { rejectUnauthorized: false } : false
 });
 
+// Configure multer for storing uploaded images to public/uploads
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, 'cover-' + uniqueSuffix + ext);
+  }
+});
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: storage,
   limits: {
-    fileSize: 2 * 1024 * 1024
+    fileSize: 5 * 1024 * 1024 // 5MB max
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('只允許上傳圖片文件'));
+    }
   }
 });
 

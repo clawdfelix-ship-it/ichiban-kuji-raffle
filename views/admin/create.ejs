@@ -30,8 +30,13 @@
             <input type="text" id="title" name="title" required placeholder="例如: 海賊王一番賞">
           </div>
           <div class="form-group">
-            <label for="cover_image">封面圖片 (可選)</label>
-            <input type="file" id="cover_image" name="cover_image" accept="image/*">
+            <label for="cover_image_url">封面圖片 (可選)</label>
+            <input type="text" id="cover_image_url" name="cover_image_url" placeholder="https://... 或者選擇文件點擊上傳自動填充">
+            <div style="margin-top: 8px; display:flex; gap: 8px; align-items:center; flex-wrap:wrap;">
+              <input type="file" id="cover_image_file" name="cover_image_file" accept="image/*" style="flex:1; min-width:200px;">
+              <button type="button" id="uploadCoverBtn" class="btn btn-secondary btn-sm">上傳封面</button>
+            </div>
+            <div id="uploadStatus" style="margin-top: 8px; font-size: 14px; display:none;"></div>
             <div id="coverPreview" style="margin-top: 12px; display: none;">
               <img id="coverPreviewImg" alt="封面預覽" style="width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; border: 1px solid rgba(0,0,0,0.08);">
             </div>
