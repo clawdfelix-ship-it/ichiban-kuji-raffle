@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="編輯代抽服務 - 台灣一番賞委託代抽">
+  <title>編輯代抽服務 - 管理後台</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <a href="/" class="site-logo">
+          <img src="/img/mirai-3.png" alt="TMA台灣分部-未來飛翔">
+        </a>
+        <div class="header-text">
+          <h1>編輯代抽服務</h1>
+          <p>修改代抽服務信息</p>
+        </div>
+        <div class="header-buttons">
+          <a href="/admin" class="btn btn-secondary btn-sm">返回後台</a>
+          <a href="/logout" class="btn btn-secondary btn-sm">登出</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="create-wizard">
+      <!-- Step 1: Basic Info -->
+      <div id="step1" class="wizard-step active">
+        <h3>基本信息</h3>
+        <form id="basicInfoForm">
+          <div class="form-group">
+            <label for="title">服務標題 *</label>
+            <input type="text" id="title" name="title" required value="<%= raffle.title %>" placeholder="例如：神木麗 香港【4週年活動 限定盲盒】">
+          </div>
+          <div class="form-group">
+            <label for="description">服務描述</label>
+            <textarea id="description" name="description" rows="4" placeholder="簡單介紹這個一番賞活動..."><%= raffle.description %></textarea>
+          </div>
+          <div class="form-group">
+            <label for="total_boxes">總盒數 *</label>
+            <input type="number" id="total_boxes" name="total_boxes" min="1" required value="<%= raffle.total_boxes %>">
+          </div>
+          <div class="form-group">
+            <label for="price_per_box">每盒價格 (HKD) *</label>
+            <input type="number" id="price_per_box" name="price_per_box" step="0.01" min="1" required value="<%= raffle.price_per_box %>">
+          </div>
+          <div class="form-group">
+            <label for="cover_image_url">封面圖片 URL</label>
+            <input type="text" id="cover_image_url" name="cover_image_url" value="<%= raffle.cover_image || '' %>" placeholder="https://...">
+            <p class="help-text">可以直接粘帖從 Vercel Blob 或 Imgur 獲得的圖片直接鏈接</p>
+          </div>
+          <div class="form-group">
+            <label for="cover_image_file">或者上傳新封面</label>
+            <input type="file" id="cover_image_file" accept="image/*">
+            <div id="coverPreview" class="cover-preview" <% if (!raffle.cover_image) { %>style="display: none;"<% } %>>
+              <img id="coverPreviewImg" <% if (raffle.cover_image) { %>src="<%= raffle.cover_image %>"<% } %> alt="封面預覽">
+            </div>
+            <button type="button" id="uploadCoverBtn" class="btn btn-secondary">上傳封面到 Vercel Blob</button>
+            <div id="uploadStatus" class="upload-status" style="display: none;"></div>
+          </div>
+          <div class="form-group">
+            <label for="status">狀態</label>
+            <select id="status" name="status">
+              <option value="draft" <% if (raffle.status === 'draft') { %>selected<% } %>>草稿 - 不在首頁顯示</option>
+              <option value="active" <% if (raffle.status === 'active') { %>selected<% } %>>開放中 - 在首頁顯示</option>
+              <option value="closed" <% if (raffle.status === 'closed') { %>selected<% } %>>已關閉 - 不在首頁顯示</option>
+              <option value="completed" <% if (raffle.status === 'completed') { %>selected<% } %>>已完成 - 全部售完</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <a href="/admin" class="btn btn-secondary">取消</a>
+            <button type="submit" class="btn btn-primary">保存修改</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="legal-footer" style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 16px; text-align: left; font-size: 13px; line-height: 1.6; color: #495057;">
+        <strong>【服務聲明】</strong><br>
+        <ol style="margin: 8px 0 0 20px; padding: 0;">
+          <li>本平台僅提供日本／台灣一番賞商品之代購及代抽服務。</li>
+          <li>所有抽選行為及相關交易均於海外（台灣）由當地合作單位完成，香港僅作為資訊展示及代購安排之平台，不涉及任何抽獎、博彩或機會遊戲活動之經營或操作。</li>
+          <li>由於相關抽選活動並非於香港進行，本平台並不構成香港法例下之獎券、抽獎或賭博業務。</li>
+          <li>用戶於下單時，即表示已年滿18歲，明白及同意抽選行為於海外進行，接受抽選結果之隨機性及不可預測性。</li>
+          <li>所有商品內容、款式及中獎機率，均以當地官方公佈為準。基於抽選性質，所有訂單一經確認恕不接受退款或更換。</li>
+        </ol>
+      </div>
+      <p>&copy; <%= new Date().getFullYear() %> Ichiban Kuji Proxy Service</p>
+      <p style="margin-top: 8px; opacity: 0.7;">
+        Powered by TMA台灣分部-未來飛翔
+      </p>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+  <script>
+    window.raffleId = <%= raffle.id %>;
+    document.addEventListener('DOMContentLoaded', () => {
+      initEditPage();
+    });
+  </script>
+</body>
+</html>

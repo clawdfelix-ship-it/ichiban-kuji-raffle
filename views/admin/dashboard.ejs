@@ -76,6 +76,7 @@
                 <td><%= new Date(raffle.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) %></td>
                 <td class="actions">
                   <a href="/raffle/<%= raffle.id %>" target="_blank" class="btn btn-sm btn-secondary">查看</a>
+                  <a href="/admin/raffles/<%= raffle.id %>/edit" class="btn btn-sm btn-secondary">編輯</a>
                   <a href="/admin/raffles/<%= raffle.id %>/codes" class="btn btn-sm btn-primary">驗證碼</a>
                   <% if (raffle.status === 'active') { %>
                     <button class="btn btn-sm btn-warning change-status" 

@@ -846,9 +846,106 @@ function initAdminUsersPage() {
 }
 
 // ============================================
+// Edit Raffle Page
+// ==========================================
+function initEditPage() {
+  const basicForm = document.getElementById('basicInfoForm');
+  const coverFileInput = document.getElementById('cover_image_file');
+  const coverUrlInput = document.getElementById('cover_image_url');
+  const coverPreview = document.getElementById('coverPreview');
+  const coverPreviewImg = document.getElementById('coverPreviewImg');
+  const uploadCoverBtn = document.getElementById('uploadCoverBtn');
+  const uploadStatus = document.getElementById('uploadStatus');
+
+  if (coverFileInput && coverPreview && coverPreviewImg) {
+    coverFileInput.addEventListener('change', () => {
+      const file = coverFileInput.files && coverFileInput.files[0];
+      if (!file) {
+        coverPreview.style.display = 'none';
+        coverPreviewImg.removeAttribute('src');
+        return;
+      }
+      coverPreview.style.display = 'block';
+      coverPreviewImg.src = URL.createObjectURL(file);
+    });
+  }
+
+  // Upload cover image to server
+  if (uploadCoverBtn) {
+    uploadCoverBtn.addEventListener('click', async () => {
+      const file = coverFileInput.files && coverFileInput.files[0];
+      if (!file) {
+        alert('請先選擇一個圖片文件');
+        return;
+      }
+
+      uploadCoverBtn.disabled = true;
+      uploadStatus.style.display = 'block';
+      uploadStatus.textContent = '正在上傳...';
+      uploadStatus.style.color = '#666';
+
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const result = await apiRequest('/api/admin/upload-image', {
+          method: 'POST',
+          body: formData,
+        });
+
+        // Auto-fill the URL
+        coverUrlInput.value = result.url;
+        uploadStatus.textContent = '✅ 上傳成功！URL 已自動填充';
+        uploadStatus.style.color = '#28a745';
+      } catch (err) {
+        let msg = err.message;
+        if (msg.includes('EROFS') || msg.includes('read-only')) {
+          msg = 'Vercel 服務器文件系統只讀，無法保存文件。\n請將圖片上傳到免費圖床（Imgur、Discord 等），然後手動粘帖 URL 到上方輸入框。';
+        }
+        uploadStatus.textContent = '❌ 上傳失敗: ' + msg;
+        uploadStatus.style.color = '#dc3545';
+      } finally {
+        uploadCoverBtn.disabled = false;
+      }
+    });
+  }
+
+  // Handle form submit
+  if (basicForm) {
+    basicForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const data = {
+        title: document.getElementById('title').value.trim(),
+        description: document.getElementById('description').value,
+        total_boxes: document.getElementById('total_boxes').value,
+        price_per_box: document.getElementById('price_per_box').value,
+        cover_image: document.getElementById('cover_image_url').value || null,
+        status: document.getElementById('status').value
+      };
+
+      try {
+        // Get raffle ID from the page (injected by EJS)
+        const raffleId = window.raffleId;
+        await apiRequest(`/api/admin/raffles/${raffleId}/update`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        });
+
+        alert('✅ 保存成功！');
+        window.location.href = '/admin';
+      } catch (err) {
+        alert('❌ 保存失敗: ' + err.message);
+      }
+    });
+  }
+}
+
+// ============================================
 // Export for inline script calls
 // ============================================
 window.initRafflePage = initRafflePage;
 window.initAdminDashboard = initAdminDashboard;
 window.initCreateRafflePage = initCreateRafflePage;
 window.initAdminUsersPage = initAdminUsersPage;
+window.initEditPage = initEditPage;

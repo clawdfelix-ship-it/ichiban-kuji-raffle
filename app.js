@@ -1046,6 +1046,85 @@ app.get('/admin/create', requireAdmin, (req, res) => {
   res.render('admin/create');
 });
 
+// Edit raffle page
+app.get('/admin/raffles/:id/edit', requireAdmin, async (req, res) => {
+  try {
+    if (!req.session.user || !req.session.user.is_admin) {
+      return res.redirect('/admin/login');
+    }
+    const result = await dbQuery(`
+      SELECT * FROM raffles WHERE id = $1
+    `, [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).send('代抽服務不存在');
+    }
+    const raffle = result.rows[0];
+    res.render('admin/edit', { raffle });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error: ' + err.message);
+  }
+});
+
+// Update raffle API
+app.put('/api/admin/raffles/:id/update', requireAdmin, multerUnlessJson, async (req, res) => {
+  try {
+    if (!req.session.user || !req.session.user.is_admin) {
+      return res.status(403).json({ error: '需要管理員權限' });
+    }
+    
+    const raffleId = req.params.id;
+    const title = req.body.title ? req.body.title.trim() : '';
+    const description = req.body.description || '';
+    const total_boxes = req.body.total_boxes;
+    const price_per_box = req.body.price_per_box;
+    const cover_image = req.body.cover_image || null;
+    const status = req.body.status || 'draft';
+    
+    if (!title || !total_boxes || !price_per_box) {
+      return res.status(400).json({ error: '缺少必要欄位' });
+    }
+    
+    const parsedTotalBoxes = parseInt(total_boxes, 10);
+    const parsedPricePerBox = parseFloat(price_per_box);
+    
+    if (isNaN(parsedTotalBoxes) || parsedTotalBoxes < 1) {
+      return res.status(400).json({ error: '總盒數必須是大於 0 的數字' });
+    }
+    if (isNaN(parsedPricePerBox) || parsedPricePerBox <= 0) {
+      return res.status(400).json({ error: '每盒價格必須是大於 0 的數字' });
+    }
+    
+    // Get current remaining to adjust if total boxes changed
+    const current = await dbQuery(`SELECT remaining_boxes FROM raffles WHERE id = $1`, [raffleId]);
+    let remaining = parsedTotalBoxes;
+    if (current.rows.length > 0) {
+      // If decreasing total, adjust remaining proportionally (simplified)
+      remaining = Math.min(current.rows[0].remaining_boxes, parsedTotalBoxes);
+    }
+    
+    await dbQuery(`
+      UPDATE raffles 
+      SET title = $1, description = $2, cover_image = $3, total_boxes = $4, price_per_box = $5, remaining_boxes = $6, status = $7
+      WHERE id = $8
+    `, [
+      title,
+      description || '',
+      cover_image || null,
+      parsedTotalBoxes,
+      parsedPricePerBox,
+      remaining,
+      status,
+      raffleId
+    ]);
+    
+    res.json({ success: true, raffleId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
 // Create new raffle API
 // Note: Frontend sends FormData for optional image upload, need multer to parse multipart
 // Auto-detect content-type: multer for multipart, pass-through for json
