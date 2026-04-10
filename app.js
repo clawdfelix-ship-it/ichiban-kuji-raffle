@@ -960,6 +960,40 @@ app.get('/admin/create', requireAdmin, (req, res) => {
   res.render('admin/create');
 });
 
+// Create new raffle API
+app.post('/api/admin/raffles/create', requireAdmin, async (req, res) => {
+  try {
+    if (!req.session.user || !req.session.user.is_admin) {
+      return res.status(403).json({ error: '需要管理員權限' });
+    }
+
+    const { title, description, cover_image, total_boxes, price_per_box, num_pools } = req.body;
+
+    if (!title || !total_boxes || !price_per_box) {
+      return res.status(400).json({ error: '缺少必要欄位' });
+    }
+
+    const result = await dbQuery(`
+      INSERT INTO raffles (title, description, cover_image, total_boxes, price_per_box, remaining_boxes, num_pools, status, created_by)
+      VALUES ($1, $2, $3, $4, $5, $4, $6, 'draft', $7)
+      RETURNING id
+    `, [
+      title,
+      description || '',
+      cover_image || null,
+      parseInt(total_boxes, 10),
+      parseFloat(price_per_box),
+      parseInt(num_pools || 1, 10),
+      req.session.user.id
+    ]);
+
+    res.json({ raffleId: result.rows[0].id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
 app.get('/admin/raffles/:id/codes', requireAdmin, async (req, res) => {
   try {
     const raffleId = parseInt(req.params.id);
@@ -1072,6 +1106,112 @@ app.post('/api/admin/users/:id/reset-password', requireAdmin, async (req, res) =
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add item to raffle API
+app.post('/api/admin/raffles/:id/items/add', requireAdmin, async (req, res) => {
+  try {
+    if (!req.session.user || !req.session.user.is_admin) {
+      return res.status(403).json({ error: '需要管理員權限' });
+    }
+
+    const raffleId = parseInt(req.params.id);
+    const { tier, name, description, image_url, total_count, is_final, pool_number } = req.body;
+
+    if (!raffleId || !tier || !name || !total_count) {
+      return res.status(400).json({ error: '缺少必要欄位' });
+    }
+
+    const result = await dbQuery(`
+      INSERT INTO prizes (raffle_id, tier, name, description, image_url, total_count, remaining_count, is_final, pool_number)
+      VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8)
+      RETURNING id
+    `, [
+      raffleId,
+      tier,
+      name,
+      description || '',
+      image_url || null,
+      parseInt(total_count, 10),
+      is_final ? 1 : 0,
+      pool_number || 1
+    ]);
+
+    res.json({ itemId: result.rows[0].id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// Update item API
+app.put('/api/admin/raffles/:raffleId/items/:itemId', requireAdmin, async (req, res) => {
+  try {
+    if (!req.session.user || !req.session.user.is_admin) {
+      return res.status(403).json({ error: '需要管理員權限' });
+    }
+
+    const raffleId = parseInt(req.params.raffleId);
+    const itemId = parseInt(req.params.itemId);
+    const { tier, name, description, image_url, total_count, is_final, pool_number } = req.body;
+
+    await dbQuery(`
+      UPDATE prizes
+      SET tier = $1, name = $2, description = $3, image_url = $4, total_count = $5, is_final = $6, pool_number = $7
+      WHERE id = $8 AND raffle_id = $9
+    `, [
+      tier,
+      name,
+      description || '',
+      image_url || null,
+      parseInt(total_count, 10),
+      is_final ? 1 : 0,
+      pool_number || 1,
+      itemId,
+      raffleId
+    ]);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// Delete item API
+app.delete('/api/admin/raffles/:raffleId/items/:itemId', requireAdmin, async (req, res) => {
+  try {
+    if (!req.session.user || !req.session.user.is_admin) {
+      return res.status(403).json({ error: '需要管理員權限' });
+    }
+
+    const raffleId = parseInt(req.params.raffleId);
+    const itemId = parseInt(req.params.itemId);
+
+    await dbQuery('DELETE FROM prizes WHERE id = $1 AND raffle_id = $2', [itemId, raffleId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// Change raffle status API
+app.post('/api/admin/raffles/:id/status', requireAdmin, async (req, res) => {
+  try {
+    if (!req.session.user || !req.session.user.is_admin) {
+      return res.status(403).json({ error: '需要管理員權限' });
+    }
+
+    const raffleId = parseInt(req.params.id);
+    const { status } = req.body;
+
+    await dbQuery('UPDATE raffles SET status = $1 WHERE id = $2', [status, raffleId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
