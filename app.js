@@ -46,6 +46,17 @@ function dbQuery(sql, params = [], client = pool) {
   return client.query(sql, params);
 }
 
+// Multer middleware for mixed content-type support
+const anyMulter = upload.none();
+const multerUnlessJson = (req, res, next) => {
+  const contentType = req.get('Content-Type') || '';
+  if (contentType.includes('multipart/form-data')) {
+    anyMulter(req, res, next);
+  } else {
+    next();
+  }
+};
+
 // Middleware
 const path = require('path');
 app.use(express.static(path.join(__dirname, 'public')));
@@ -963,16 +974,7 @@ app.get('/admin/create', requireAdmin, (req, res) => {
 
 // Create new raffle API
 // Note: Frontend sends FormData for optional image upload, need multer to parse multipart
-const anyMulter = upload.none();
-const multerUnlessJson = (req, res, next) => {
-  const contentType = req.get('Content-Type') || '';
-  if (contentType.includes('multipart/form-data')) {
-    anyMulter(req, res, next);
-  } else {
-    next();
-  }
-};
-
+// Auto-detect content-type: multer for multipart, pass-through for json
 app.post('/api/admin/raffles/create', requireAdmin, multerUnlessJson, async (req, res) => {
   try {
     if (!req.session.user || !req.session.user.is_admin) {
