@@ -1130,7 +1130,7 @@ app.post('/api/admin/users/:id/reset-password', requireAdmin, async (req, res) =
 });
 
 // Add item to raffle API
-app.post('/api/admin/raffles/:id/items/add', requireAdmin, async (req, res) => {
+app.post('/api/admin/raffles/:id/items/add', requireAdmin, upload.none(), async (req, res) => {
   try {
     if (!req.session.user || !req.session.user.is_admin) {
       return res.status(403).json({ error: '需要管理員權限' });
@@ -1166,7 +1166,7 @@ app.post('/api/admin/raffles/:id/items/add', requireAdmin, async (req, res) => {
 });
 
 // Update item API
-app.put('/api/admin/raffles/:raffleId/items/:itemId', requireAdmin, async (req, res) => {
+app.put('/api/admin/raffles/:raffleId/items/:itemId', requireAdmin, upload.none(), async (req, res) => {
   try {
     if (!req.session.user || !req.session.user.is_admin) {
       return res.status(403).json({ error: '需要管理員權限' });
@@ -1200,7 +1200,7 @@ app.put('/api/admin/raffles/:raffleId/items/:itemId', requireAdmin, async (req, 
 });
 
 // Delete item API
-app.delete('/api/admin/raffles/:raffleId/items/:itemId', requireAdmin, async (req, res) => {
+app.delete('/api/admin/raffles/:raffleId/items/:itemId', requireAdmin, upload.none(), async (req, res) => {
   try {
     if (!req.session.user || !req.session.user.is_admin) {
       return res.status(403).json({ error: '需要管理員權限' });
@@ -1218,7 +1218,7 @@ app.delete('/api/admin/raffles/:raffleId/items/:itemId', requireAdmin, async (re
 });
 
 // Change raffle status API
-app.post('/api/admin/raffles/:id/status', requireAdmin, async (req, res) => {
+app.post('/api/admin/raffles/:id/status', requireAdmin, upload.none(), async (req, res) => {
   try {
     if (!req.session.user || !req.session.user.is_admin) {
       return res.status(403).json({ error: '需要管理員權限' });
