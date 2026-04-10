@@ -961,16 +961,37 @@ app.get('/admin/create', requireAdmin, (req, res) => {
 });
 
 // Create new raffle API
+// Note: Frontend sends FormData for optional image upload, so we need to get fields from req.body
+// express.urlencoded should already parse it
 app.post('/api/admin/raffles/create', requireAdmin, async (req, res) => {
   try {
     if (!req.session.user || !req.session.user.is_admin) {
       return res.status(403).json({ error: '需要管理員權限' });
     }
 
-    const { title, description, cover_image, total_boxes, price_per_box, num_pools } = req.body;
+    // Get from req.body (express parses both json and urlencoded/form-data)
+    const title = req.body.title ? req.body.title.trim() : '';
+    const description = req.body.description || '';
+    const total_boxes = req.body.total_boxes;
+    const price_per_box = req.body.price_per_box;
+    const num_pools = req.body.num_pools;
+    const cover_image = req.body.cover_image || null;
+
+    // Debug logging
+    console.log('Create raffle request:', { title, total_boxes, price_per_box, num_pools });
 
     if (!title || !total_boxes || !price_per_box) {
       return res.status(400).json({ error: '缺少必要欄位' });
+    }
+    
+    const parsedTotalBoxes = parseInt(total_boxes, 10);
+    const parsedPricePerBox = parseFloat(price_per_box);
+    
+    if (isNaN(parsedTotalBoxes) || parsedTotalBoxes < 1) {
+      return res.status(400).json({ error: '總盒數必須是大於 0 的數字' });
+    }
+    if (isNaN(parsedPricePerBox) || parsedPricePerBox <= 0) {
+      return res.status(400).json({ error: '每盒價格必須是大於 0 的數字' });
     }
 
     const result = await dbQuery(`
@@ -981,8 +1002,8 @@ app.post('/api/admin/raffles/create', requireAdmin, async (req, res) => {
       title,
       description || '',
       cover_image || null,
-      parseInt(total_boxes, 10),
-      parseFloat(price_per_box),
+      parsedTotalBoxes,
+      parsedPricePerBox,
       parseInt(num_pools || 1, 10),
       req.session.user.id
     ]);
