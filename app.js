@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { put } = require('@vercel/blob');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -970,37 +971,52 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
 // ===== Admin Routes =====
 
 // Upload image endpoint for admin (cover images)
-// Note: On Vercel serverless, filesystem is read-only at runtime
-// So this only works when uploading from local development -> commit image to git -> deploy
-// If you get EROFS error on Vercel, just paste the image URL manually from Imgur etc.
+// Uses Vercel Blob for cloud storage when BLOB_READ_WRITE_TOKEN is available
+// Falls back to local file storage for development
 app.post('/api/admin/upload-image', requireAdmin, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: '沒有上傳文件' });
     }
     
-    // Generate unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(req.file.originalname).toLowerCase();
-    const filename = 'cover-' + uniqueSuffix + ext;
-    const fullPath = path.join(uploadDir, filename);
-    
-    // Try to write the file
-    // On Vercel this will fail with EROFS (read-only), so we give a helpful error
-    try {
-      fs.writeFileSync(fullPath, req.file.buffer);
-      // Success - return URL
-      const imageUrl = `/uploads/${filename}`;
+    // If Vercel Blob token is available, use cloud storage (works everywhere including Vercel live)
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      const filename = `cover-${uniqueSuffix}${ext}`;
+      
+      // Upload to Vercel Blob
+      const blob = await put(filename, req.file.buffer, {
+        access: 'public',
+        contentType: req.file.mimetype
+      });
+      
+      // Return the permanent URL from Vercel Blob
       res.json({ 
         success: true, 
-        url: imageUrl,
-        filename: filename
+        url: blob.url,
+        filename
       });
-    } catch (writeErr) {
-      // Write failed - likely Vercel read-only filesystem
-      res.status(500).json({ 
-        error: 'Vercel 服務器文件系統只讀，無法保存文件。請將圖片上傳到圖床（Imgur 等），然後手動粘帖 URL 到輸入框。' 
-      });
+    } else {
+      // No Blob token - fall back to local file storage
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      const filename = 'cover-' + uniqueSuffix + ext;
+      const fullPath = path.join(uploadDir, filename);
+      
+      try {
+        fs.writeFileSync(fullPath, req.file.buffer);
+        const imageUrl = `/uploads/${filename}`;
+        res.json({ 
+          success: true, 
+          url: imageUrl,
+          filename
+        });
+      } catch (writeErr) {
+        res.status(500).json({ 
+          error: 'Vercel Blob 未配置，且本地文件系統只讀。請在 Vercel 項目設置添加 BLOB_READ_WRITE_TOKEN 環境變量，或者手動粘帖圖片 URL。' 
+        });
+      }
     }
   } catch (err) {
     console.error('Upload error:', err);
