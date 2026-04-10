@@ -1269,44 +1269,7 @@ app.get('/api/admin/raffles/:id/codes', requireAdmin, async (req, res) => {
   }
 });
 
-// Get my entries (for logged in user)
-app.get('/api/my/entries', requireAuth, async (req, res) => {
-  try {
-    if (!req.session.user) {
-      return res.status(401).json({ error: '需要登入' });
-    }
-    const userId = req.session.user.id;
-    
-    // Ensure redeemed_at column exists for all existing entries
-    try {
-      await dbQuery('ALTER TABLE entries ADD COLUMN IF NOT EXISTS redeemed_at TIMESTAMP NULL');
-    } catch (alterErr) {
-      console.warn('ALTER TABLE entries warning (safe to ignore if column exists):', alterErr.message);
-    }
-    
-    const result = await dbQuery(`
-      SELECT e.*, 
-             r.title as raffle_title, 
-             CASE WHEN p.tier IN ('A','B','C','D','E','F','G','H') THEN p.name ELSE '親筆簽名拍立得' END as prize_name,
-             p.tier as prize_tier, 
-             p.is_final as prize_is_final,
-             vc.code as verification_code
-      FROM entries e
-      JOIN raffles r ON e.raffle_id = r.id
-      LEFT JOIN prizes p ON e.prize_id = p.id
-      LEFT JOIN verification_codes vc ON e.verification_code_id = vc.id
-      WHERE e.user_id = $1
-      ORDER BY e.drawn_at DESC
-    `, [userId]);
-    
-    res.json({ entries: result.rows });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Redeem an entry (for on-site redemption)
+// Redeem an entry (for on-site redemption) - must come before GET /api/my/entries to avoid route matching conflict
 app.post('/api/my/entries/:id/redeem', requireAuth, async (req, res) => {
   try {
     if (!req.session.user) {
@@ -1346,6 +1309,43 @@ app.post('/api/my/entries/:id/redeem', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// Get my entries (for logged in user)
+app.get('/api/my/entries', requireAuth, async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: '需要登入' });
+    }
+    const userId = req.session.user.id;
+    
+    // Ensure redeemed_at column exists for all existing entries
+    try {
+      await dbQuery('ALTER TABLE entries ADD COLUMN IF NOT EXISTS redeemed_at TIMESTAMP NULL');
+    } catch (alterErr) {
+      console.warn('ALTER TABLE entries warning (safe to ignore if column exists):', alterErr.message);
+    }
+    
+    const result = await dbQuery(`
+      SELECT e.*, 
+             r.title as raffle_title, 
+             CASE WHEN p.tier IN ('A','B','C','D','E','F','G','H') THEN p.name ELSE '親筆簽名拍立得' END as prize_name,
+             p.tier as prize_tier, 
+             p.is_final as prize_is_final,
+             vc.code as verification_code
+      FROM entries e
+      JOIN raffles r ON e.raffle_id = r.id
+      LEFT JOIN prizes p ON e.prize_id = p.id
+      LEFT JOIN verification_codes vc ON e.verification_code_id = vc.id
+      WHERE e.user_id = $1
+      ORDER BY e.drawn_at DESC
+    `, [userId]);
+    
+    res.json({ entries: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
