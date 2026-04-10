@@ -490,16 +490,15 @@ function initCreateRafflePage() {
       }
     }
 
-    // Default Ichiban Kuji item template (total 80: H=40, A-G=40)
+    // Default Ichiban Kuji item template (total 80: corrected by user)
     const defaultItems = [
       { tier: 'A', name: 'OFF會參加券', description: '', total_count: 1, is_final: false },
-      { tier: 'B', name: '攝影會參加券', description: '', total_count: 2, is_final: false },
-      { tier: 'C', name: '見面會 - 10秒個人攝影券', description: '', total_count: 3, is_final: false },
-      { tier: 'D', name: '見面會 - 10秒自拍券', description: '', total_count: 4, is_final: false },
-      { tier: 'E', name: '見面會 - 15秒video券', description: '', total_count: 6, is_final: false },
-      { tier: 'F', name: '見面會 - 簽名券', description: '', total_count: 8, is_final: false },
-      { tier: 'G', name: '見面會 - 合照券', description: '', total_count: 16, is_final: false },
-      { tier: 'H', name: '簽名拍立得', description: '', total_count: 40, is_final: false },
+      { tier: 'B', name: '見面會 - 10秒個人攝影券', description: '', total_count: 3, is_final: false },
+      { tier: 'C', name: '見面會 - 10秒自拍券', description: '', total_count: 4, is_final: false },
+      { tier: 'D', name: '見面會 - 15秒video券', description: '', total_count: 6, is_final: false },
+      { tier: 'E', name: '見面會 - 簽名券', description: '', total_count: 8, is_final: false },
+      { tier: 'F', name: '見面會 - 合照券', description: '', total_count: 18, is_final: false },
+      { tier: 'G', name: '簽名拍立得', description: '', total_count: 40, is_final: false },
       { tier: 'LAST', name: '迪士尼入場券', description: '', total_count: 1, is_final: true, pool_number: 1 }
     ];
 
