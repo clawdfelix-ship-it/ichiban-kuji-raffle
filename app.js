@@ -24,22 +24,13 @@ const pool = new Pool({
   ssl: connectionString ? { rejectUnauthorized: false } : false
 });
 
-// Configure multer for storing uploaded images to public/uploads
-// Directory already exists in git (with .gitkeep), Vercel filesystem is read-only at runtime
-// so we don't need to create it here
-const uploadDir = path.join(__dirname, 'public', 'uploads');
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, 'cover-' + uniqueSuffix + ext);
-  }
-});
-
+// For Vercel serverless: we use memoryStorage, because Vercel filesystem is read-only at runtime
+// After user uploads in admin, we save it to public/uploads and it needs to be committed to git
+// to be available to Vercel CDN. This is okay because:
+// 1. Admin uploads are very infrequent
+// 2. Images are small (<5MB)
+// 3. After upload, you just need to git commit/push and Vercel deploys it
+const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
   limits: {
@@ -53,6 +44,9 @@ const upload = multer({
     }
   }
 });
+
+// Ensure upload directory exists locally (we already created it with .gitkeep)
+const uploadDir = path.join(__dirname, 'public', 'uploads');
 
 // Test connection
 if (connectionString) {
@@ -974,6 +968,37 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
 });
 
 // ===== Admin Routes =====
+
+// Upload image endpoint for admin (cover images)
+app.post('/api/admin/upload-image', requireAdmin, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: '沒有上傳文件' });
+    }
+    
+    // Generate unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    const filename = 'cover-' + uniqueSuffix + ext;
+    const fullPath = path.join(uploadDir, filename);
+    
+    // Write the buffer from memory storage to disk
+    // This only works locally after deployment, you need to git commit the uploaded image
+    // Vercel will then serve it from CDN
+    fs.writeFileSync(fullPath, req.file.buffer);
+    
+    // Return the URL for the uploaded image
+    const imageUrl = `/uploads/${filename}`;
+    res.json({ 
+      success: true, 
+      url: imageUrl,
+      filename: filename
+    });
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).json({ error: err.message || '上傳失敗' });
+  }
+});
 
 // Admin dashboard
 app.get('/admin', requireAdmin, async (req, res) => {
