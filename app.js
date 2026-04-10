@@ -1277,6 +1277,13 @@ app.get('/api/my/entries', requireAuth, async (req, res) => {
     }
     const userId = req.session.user.id;
     
+    // Ensure redeemed_at column exists for all existing entries
+    try {
+      await dbQuery('ALTER TABLE entries ADD COLUMN IF NOT EXISTS redeemed_at TIMESTAMP NULL');
+    } catch (alterErr) {
+      console.warn('ALTER TABLE entries warning (safe to ignore if column exists):', alterErr.message);
+    }
+    
     const result = await dbQuery(`
       SELECT e.*, 
              r.title as raffle_title, 
@@ -1308,6 +1315,13 @@ app.post('/api/my/entries/:id/redeem', requireAuth, async (req, res) => {
     const entryId = parseInt(req.params.id);
     const userId = req.session.user.id;
     
+    // First ensure redeemed_at column exists (add if missing)
+    try {
+      await dbQuery('ALTER TABLE entries ADD COLUMN IF NOT EXISTS redeemed_at TIMESTAMP NULL');
+    } catch (alterErr) {
+      console.warn('ALTER TABLE entries warning (safe to ignore if column exists):', alterErr.message);
+    }
+    
     // Check that entry belongs to this user
     const checkResult = await dbQuery(
       'SELECT id, redeemed_at FROM entries WHERE id = $1 AND user_id = $2',
@@ -1331,7 +1345,7 @@ app.post('/api/my/entries/:id/redeem', requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
