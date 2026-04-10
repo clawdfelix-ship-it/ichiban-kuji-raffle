@@ -70,20 +70,30 @@
 
         let html = '';
         entries.forEach(entry => {
+          const redeemedClass = entry.redeemed_at ? 'redeemed' : '';
+          const redeemedText = entry.redeemed_at ? '已兌換' : '未兌換';
+          const buttonText = entry.redeemed_at ? '已核銷' : '兌換核銷';
           html += `
-            <div class="winning-card ${entry.prize_is_final ? 'final' : ''}">
+            <div class="winning-card ${entry.prize_is_final ? 'final' : ''} ${redeemedClass}">
               <div class="my-entry-header">
                 <strong>${entry.raffle_title}</strong>
-                <span class="date">${new Date(entry.drawn_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</span>
+                <span class="date">${new Date(entry.drawn_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })} · ${redeemedText}</span>
               </div>
               <div class="my-entry-prize">
                 ${entry.prize_tier ? `<span class="tier-badge ${entry.prize_tier.toLowerCase()}">${entry.prize_tier}</span>` : ''}
                 ${entry.prize_is_final ? '<span class="final-badge">最終賞</span>' : ''}
                 <strong>${entry.prize_name}</strong>
               </div>
-              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
-                <small style="color: #64748b;">驗證碼:</small>
-                <code style="display: inline-block; margin-left: 4px; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${entry.verification_code}</code>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <small style="color: #64748b;">驗證碼:</small>
+                  <code style="display: inline-block; margin-left: 4px; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${entry.verification_code}</code>
+                </div>
+                <button class="btn btn-sm ${entry.redeemed_at ? 'btn-secondary disabled' : 'btn-primary'}" 
+                        onclick="redeemItem(${entry.id})" 
+                        ${entry.redeemed_at ? 'disabled' : ''}>
+                  ${buttonText}
+                </button>
               </div>
             </div>
           `;
@@ -99,6 +109,26 @@
         alert('獲取代抽記錄失敗: ' + err.message);
       }
     });
+
+    // Redeem item function
+    async function redeemItem(entryId) {
+      if (!confirm('確認要核銷這個商品嗎？')) {
+        return;
+      }
+      try {
+        const result = await apiRequest(`/api/my/entries/${entryId}/redeem`, {
+          method: 'POST'
+        });
+        if (result.success) {
+          alert('核銷成功！');
+          location.reload();
+        } else {
+          alert('核銷失敗: ' + (result.error || '未知錯誤'));
+        }
+      } catch (err) {
+        alert('核銷失敗: ' + err.message);
+      }
+    }
   </script>
 </body>
 </html>

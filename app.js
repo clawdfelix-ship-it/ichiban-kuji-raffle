@@ -1299,6 +1299,42 @@ app.get('/api/my/entries', requireAuth, async (req, res) => {
   }
 });
 
+// Redeem an entry (for on-site redemption)
+app.post('/api/my/entries/:id/redeem', requireAuth, async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: '需要登入' });
+    }
+    const entryId = parseInt(req.params.id);
+    const userId = req.session.user.id;
+    
+    // Check that entry belongs to this user
+    const checkResult = await dbQuery(
+      'SELECT id, redeemed_at FROM entries WHERE id = $1 AND user_id = $2',
+      [entryId, userId]
+    );
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: '找不到此商品或不屬於你' });
+    }
+    
+    const entry = checkResult.rows[0];
+    if (entry.redeemed_at) {
+      return res.status(400).json({ error: '此商品已經核銷過了' });
+    }
+    
+    // Update redeemed_at
+    await dbQuery(
+      'UPDATE entries SET redeemed_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [entryId]
+    );
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Login API
 app.post('/api/auth/login', async (req, res) => {
   try {

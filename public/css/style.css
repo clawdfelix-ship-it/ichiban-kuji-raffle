@@ -1065,6 +1065,12 @@ section {
   box-shadow: var(--shadow-sm);
 }
 
+.winning-card.redeemed {
+  background: #f0f0f0;
+  opacity: 0.7;
+  border-left-color: #9ca3af;
+}
+
 .winning-card .prize-name {
   font-size: 1.15rem;
   font-weight: 600;
