@@ -1050,31 +1050,45 @@ app.get('/admin', requireAdmin, async (req, res) => {
     SELECT * FROM raffles
     ORDER BY created_at DESC
   `);
-  res.render('admin', { raffles: result.rows });
+  res.render('admin/dashboard', { raffles: result.rows });
 });
 
 app.get('/admin/raffle/:id', requireAdmin, async (req, res) => {
-  const raffleResult = await dbQuery('SELECT * FROM raffles WHERE id = $1', [req.params.id]);
+  res.redirect(`/admin/raffles/${encodeURIComponent(req.params.id)}/edit`);
+});
+
+app.get('/admin/create', requireAdmin, (req, res) => {
+  res.render('admin/create');
+});
+
+app.get('/admin/users', requireAdmin, (req, res) => {
+  res.render('admin/users');
+});
+
+app.get('/admin/codes', requireAdmin, async (req, res) => {
+  const result = await dbQuery('SELECT id FROM raffles ORDER BY created_at DESC LIMIT 1');
+  if (result.rows.length === 0) {
+    return res.redirect('/admin');
+  }
+  return res.redirect(`/admin/raffles/${result.rows[0].id}/codes`);
+});
+
+app.get('/admin/raffles/:id/edit', requireAdmin, async (req, res) => {
+  const raffleId = parseInt(req.params.id);
+  const raffleResult = await dbQuery('SELECT * FROM raffles WHERE id = $1', [raffleId]);
   if (raffleResult.rows.length === 0) {
     return res.status(404).send('抽獎活動不存在');
   }
-  const raffle = raffleResult.rows[0];
+  res.render('admin/edit', { raffle: raffleResult.rows[0] });
+});
 
-  const prizesResult = await dbQuery(`
-    SELECT * FROM prizes
-    WHERE raffle_id = $1
-    ORDER BY pool_number, is_final DESC, tier
-  `, [req.params.id]);
-
-  const totalEntries = await dbQuery(`
-    SELECT COUNT(*) as count FROM entries WHERE raffle_id = $1
-  `, [req.params.id]);
-
-  res.render('admin-raffle', {
-    raffle,
-    prizes: prizesResult.rows,
-    totalEntries: totalEntries.rows[0].count
-  });
+app.get('/admin/raffles/:id/codes', requireAdmin, async (req, res) => {
+  const raffleId = parseInt(req.params.id);
+  const raffleResult = await dbQuery('SELECT id, title FROM raffles WHERE id = $1', [raffleId]);
+  if (raffleResult.rows.length === 0) {
+    return res.status(404).send('抽獎活動不存在');
+  }
+  res.render('admin/codes', { raffleId, title: raffleResult.rows[0].title });
 });
 
 // Create new raffle
