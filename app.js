@@ -367,6 +367,31 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+// Login API
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: '請填寫用戶名和密碼' });
+    }
+
+    const result = await dbQuery('SELECT * FROM users WHERE username = $1', [username]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: '用戶名或密碼錯誤' });
+    }
+    const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ error: '用戶名或密碼錯誤' });
+    }
+    req.session.user = user;
+    res.json({ success: true, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // ===== Public Routes =====
 
 // Home page - list all active raffles
