@@ -901,4 +901,453 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
             INSERT INTO winners (entry_id, raffle_id, prize_id, buyer_name, user_id)
               VALUES ($1, $2, $3, $4, $5)
           `,
-          [entryId
+          [entryId, raffleId, updatedPrize.id, effectiveUsername, userId],
+          client
+        );
+
+        await client.query('COMMIT');
+        successCount++;
+        results.push({
+          code: trimmedCode,
+          success: true,
+          prize: {
+            ...updatedPrize,
+            name: majorTiers.has(updatedPrize.tier) ? updatedPrize.name : '親筆簽名拍立得'
+          },
+          entryId
+        });
+      } catch (err) {
+        console.error('Batch draw error for code:', trimmedCode, err);
+        try {
+          await client.query('ROLLBACK');
+        } catch (rollbackErr) {
+          console.error('Rollback failed:', rollbackErr);
+        }
+        results.push({
+          code: trimmedCode,
+          success: false,
+          error: '服務器錯誤，請重試'
+        });
+      }
+    }
+
+    // After processing all codes, update raffle remaining boxes once
+    if (successCount > 0) {
+      await dbQuery(
+        `
+          UPDATE raffles
+            SET remaining_boxes = remaining_boxes - $1
+            WHERE id = $2
+        `,
+        [successCount, raffleId],
+        client
+      );
+
+      const finalRemaining = raffle.remaining_boxes - successCount;
+      if (finalRemaining <= 0) {
+        await dbQuery(`UPDATE raffles SET status = 'completed' WHERE id = $1`, [raffleId], client);
+      }
+    }
+
+    await client.release();
+
+    res.json({
+      success: true,
+      results,
+      successCount,
+      totalCodes: codes.length,
+      remaining_boxes: raffle.remaining_boxes - successCount
+    });
+  } catch (err) {
+    console.error('Batch draw fatal error:', err);
+    try {
+      await client.release();
+    } catch (releaseErr) {
+      console.error('Release failed:', releaseErr);
+    }
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ===== Admin Routes =====
+
+// Admin login
+app.get('/admin/login', (req, res) => {
+  res.render('admin-login');
+});
+
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const result = await dbQuery('SELECT * FROM users WHERE username = $1 AND is_admin = 1', [username]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: '用戶名或密碼錯誤' });
+    }
+    const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ error: '用戶名或密碼錯誤' });
+    }
+    req.session.user = user;
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/admin', requireAdmin, async (req, res) => {
+  const result = await dbQuery(`
+    SELECT * FROM raffles
+    ORDER BY created_at DESC
+  `);
+  res.render('admin', { raffles: result.rows });
+});
+
+app.get('/admin/raffle/:id', requireAdmin, async (req, res) => {
+  const raffleResult = await dbQuery('SELECT * FROM raffles WHERE id = $1', [req.params.id]);
+  if (raffleResult.rows.length === 0) {
+    return res.status(404).send('抽獎活動不存在');
+  }
+  const raffle = raffleResult.rows[0];
+
+  const prizesResult = await dbQuery(`
+    SELECT * FROM prizes
+    WHERE raffle_id = $1
+    ORDER BY pool_number, is_final DESC, tier
+  `, [req.params.id]);
+
+  const totalEntries = await dbQuery(`
+    SELECT COUNT(*) as count FROM entries WHERE raffle_id = $1
+  `, [req.params.id]);
+
+  res.render('admin-raffle', {
+    raffle,
+    prizes: prizesResult.rows,
+    totalEntries: totalEntries.rows[0].count
+  });
+});
+
+// Create new raffle
+app.post('/api/admin/raffles', requireAdmin, multerUnlessJson, async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      type = 'ichiban',
+      total_boxes,
+      price_per_box,
+      num_pools = 1
+    } = req.body;
+
+    const result = await dbQuery(`
+      INSERT INTO raffles (title, description, type, total_boxes, price_per_box, remaining_boxes, num_pools, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id
+    `, [
+      title,
+      description || null,
+      type,
+      parseInt(total_boxes),
+      parseFloat(price_per_box),
+      parseInt(total_boxes),
+      parseInt(num_pools),
+      req.session.user.id
+    ]);
+
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add prize to raffle
+app.post('/api/admin/raffles/:id/prizes', requireAdmin, async (req, res) => {
+  try {
+    const raffleId = parseInt(req.params.id);
+    const { tier, name, description, total_count, is_final, pool_number } = req.body;
+
+    const result = await dbQuery(`
+      INSERT INTO prizes (raffle_id, tier, name, description, total_count, remaining_count, is_final, pool_number)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id
+    `, [
+      raffleId,
+      tier,
+      name,
+      description || null,
+      parseInt(total_count),
+      parseInt(total_count),
+      !!is_final,
+      pool_number ? parseInt(pool_number) : null
+    ]);
+
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update prize
+app.patch('/api/admin/raffles/:raffleId/prizes/:prizeId', requireAdmin, async (req, res) => {
+  try {
+    const { raffleId, prizeId } = req.params;
+    const { tier, name, description, total_count, remaining_count, is_final, pool_number } = req.body;
+
+    await dbQuery(
+      `
+        UPDATE prizes
+          SET tier = $1, name = $2, description = $3, total_count = $4, remaining_count = $5, is_final = $6, pool_number = $7
+          WHERE id = $8 AND raffle_id = $9
+      `,
+      [
+        tier,
+        name,
+        description || null,
+        parseInt(total_count),
+        parseInt(remaining_count),
+        !!is_final,
+        pool_number ? parseInt(pool_number) : null,
+        parseInt(prizeId),
+        parseInt(raffleId)
+      ]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete prize
+app.delete('/api/admin/raffles/:raffleId/prizes/:prizeId', requireAdmin, async (req, res) => {
+  try {
+    const { raffleId, prizeId } = req.params;
+    await dbQuery('DELETE FROM prizes WHERE id = $1 AND raffle_id = $2', [parseInt(prizeId), parseInt(raffleId)]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Generate verification codes for pre-allocation
+app.post('/api/admin/raffles/:id/generate-codes', requireAdmin, async (req, res) => {
+  try {
+    const raffleId = parseInt(req.params.id);
+    const { count } = req.body;
+
+    const codes = [];
+    for (let i = 0; i < parseInt(count); i++) {
+      const code = crypto.randomBytes(8).toString('hex').toUpperCase();
+      codes.push(code);
+    }
+
+    // Get all prizes for this raffle with their remaining counts
+    const prizesResult = await dbQuery(
+      'SELECT id, remaining_count FROM prizes WHERE raffle_id = $1',
+      [raffleId]
+    );
+
+    const availablePrizes = [];
+    for (const prize of prizesResult.rows) {
+      for (let i = 0; i < prize.remaining_count; i++) {
+        availablePrizes.push(prize.id);
+      }
+    }
+
+    if (availablePrizes.length < codes.length) {
+      return res.status(400).json({
+        error: `剩餘獎項數量不足，淨係得 ${availablePrizes.length} 個空額，你要生成 ${codes.length} 個驗證碼`
+      });
+    }
+
+    // Shuffle available prizes
+    for (let i = availablePrizes.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availablePrizes[i], availablePrizes[j]] = [availablePrizes[j], availablePrizes[i]];
+    }
+
+    // Insert all codes
+    for (let i = 0; i < codes.length; i++) {
+      const prizeId = availablePrizes[i];
+      await dbQuery(
+        'INSERT INTO verification_codes (raffle_id, code, prize_id) VALUES ($1, $2, $3)',
+        [raffleId, codes[i], prizeId]
+      );
+    }
+
+    res.json({
+      success: true,
+      codes,
+      generated: codes.length
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// List verification codes
+app.get('/api/admin/raffles/:id/codes', requireAdmin, async (req, res) => {
+  try {
+    const raffleId = parseInt(req.params.id);
+    const result = await dbQuery(
+      `
+        SELECT vc.*, p.tier, p.name as prize_name
+        FROM verification_codes vc
+        JOIN prizes p ON vc.prize_id = p.id
+        WHERE vc.raffle_id = $1
+        ORDER BY vc.created_at DESC
+      `,
+      [raffleId]
+    );
+    res.json({ codes: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Upload cover image
+app.post('/api/admin/raffles/:id/upload-cover', requireAdmin, upload.single('image'), async (req, res) => {
+  try {
+    const raffleId = parseInt(req.params.id);
+    if (!req.file) {
+      return res.status(400).json({ error: '沒有上傳文件' });
+    }
+
+    const ext = path.extname(req.file.originalname) || '.jpg';
+    const filename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
+    const localPath = path.join(uploadDir, filename);
+
+    // Save locally (needs to be committed to git for Vercel)
+    fs.writeFileSync(localPath, req.file.buffer);
+
+    const imageUrl = `/uploads/${filename}`;
+    await dbQuery('UPDATE raffles SET cover_image = $1 WHERE id = $2', [imageUrl, raffleId]);
+
+    res.json({ success: true, url: imageUrl, filename });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Upload failed: ' + err.message });
+  }
+});
+
+// Get entries for a raffle
+app.get('/api/admin/raffles/:id/entries', requireAdmin, async (req, res) => {
+  try {
+    const raffleId = parseInt(req.params.id);
+    const result = await dbQuery(
+      `
+        SELECT e.*, p.tier, p.name as prize_name
+        FROM entries e
+        JOIN prizes p ON e.prize_id = p.id
+        WHERE e.raffle_id = $1
+        ORDER BY e.drawn_at DESC
+      `,
+      [raffleId]
+    );
+    res.json({ entries: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update raffle status
+app.patch('/api/admin/raffles/:id/status', requireAdmin, async (req, res) => {
+  try {
+    const raffleId = parseInt(req.params.id);
+    const { status } = req.body;
+    await dbQuery('UPDATE raffles SET status = $1 WHERE id = $2', [status, raffleId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin logout
+app.post('/api/admin/logout', (req, res) => {
+  req.session.destroy();
+  res.json({ success: true });
+});
+
+// Get my entries for current user
+app.get('/api/my/entries', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+    const result = await dbQuery(
+      `
+        SELECT e.*, r.title as raffle_title, p.tier, p.name as prize_name, p.image_url as prize_image
+        FROM entries e
+        JOIN raffles r ON e.raffle_id = r.id
+        JOIN prizes p ON e.prize_id = p.id
+        WHERE e.user_id = $1
+        ORDER BY e.drawn_at DESC
+      `,
+      [userId]
+    );
+    res.json({ entries: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// List all raffles for admin
+app.get('/api/admin/raffles', requireAdmin, async (req, res) => {
+  try {
+    const result = await dbQuery(`
+      SELECT * FROM raffles ORDER BY created_at DESC
+    `);
+    res.json({ raffles: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update raffle
+app.patch('/api/admin/raffles/:id', requireAdmin, async (req, res) => {
+  try {
+    const raffleId = parseInt(req.params.id);
+    const { title, description, total_boxes, price_per_box, status, num_pools } = req.body;
+
+    await dbQuery(
+      `
+        UPDATE raffles
+          SET title = $1, description = $2, total_boxes = $3, price_per_box = $4, status = $5, num_pools = $6
+          WHERE id = $7
+      `,
+      [
+        title,
+        description || null,
+        parseInt(total_boxes),
+        parseFloat(price_per_box),
+        status,
+        parseInt(num_pools),
+        raffleId
+      ]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// For local development
+if (!isVercel) {
+  app.listen(port, () => {
+    console.log(`Ichiban Kuji Raffle server running on http://localhost:${port}`);
+  });
+}
+
+// For Vercel serverless
+module.exports = app;
