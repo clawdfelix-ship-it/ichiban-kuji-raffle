@@ -20,9 +20,17 @@ if (!connectionString) {
   console.error('Add POSTGRES_URL from your Vercel Postgres connection string');
 }
 
+const usePgSsl = (() => {
+  if (!connectionString) return false;
+  const raw = String(connectionString).toLowerCase();
+  if (process.env.PGSSLMODE === 'disable' || process.env.PG_SSL_DISABLE === '1') return false;
+  if (raw.includes('localhost') || raw.includes('127.0.0.1')) return false;
+  return true;
+})();
+
 const pool = new Pool({
   connectionString,
-  ssl: connectionString ? { rejectUnauthorized: false } : false
+  ssl: usePgSsl ? { rejectUnauthorized: false } : false
 });
 
 // For Vercel serverless: we use memoryStorage, because Vercel filesystem is read-only at runtime
@@ -868,7 +876,7 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
         }
 
         const prizeCheck = await dbQuery(
-          `SELECT * FROM prizes WHERE id = $1 AND raffle_id = $2 AND remaining_count > 0`,
+          `SELECT * FROM prizes WHERE id = $1 AND raffle_id = $2 AND remaining_count > 0 FOR UPDATE`,
           [verificationCode.prize_id, raffleId],
           client
         );
@@ -905,6 +913,15 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
           [drawnPrize.id],
           client
         );
+        if (prizeUpdate.rows.length === 0) {
+          await client.query('ROLLBACK');
+          results.push({
+            code: trimmedCode,
+            success: false,
+            error: '獎項餘量更新失敗'
+          });
+          continue;
+        }
         const updatedPrize = prizeUpdate.rows[0];
 
         const effectiveUsername = req.session.user?.username || username;
@@ -959,19 +976,22 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
 
     // After processing all codes, update raffle remaining boxes once
     if (successCount > 0) {
-      await dbQuery(
+      const raffleUpdate = await dbQuery(
         `
           UPDATE raffles
             SET remaining_boxes = remaining_boxes - $1
             WHERE id = $2
+            RETURNING remaining_boxes
         `,
         [successCount, raffleId],
         client
       );
 
-      const finalRemaining = raffle.remaining_boxes - successCount;
-      if (finalRemaining <= 0) {
-        await dbQuery(`UPDATE raffles SET status = 'completed' WHERE id = $1`, [raffleId], client);
+      if (raffleUpdate.rows.length > 0) {
+        const finalRemaining = raffleUpdate.rows[0].remaining_boxes;
+        if (finalRemaining <= 0) {
+          await dbQuery(`UPDATE raffles SET status = 'completed' WHERE id = $1`, [raffleId], client);
+        }
       }
     }
 
@@ -1162,7 +1182,9 @@ app.delete('/api/admin/raffles/:raffleId/prizes/:prizeId', requireAdmin, async (
 
 // Generate verification codes for pre-allocation
 app.post('/api/admin/raffles/:id/generate-codes', requireAdmin, async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const raffleId = parseInt(req.params.id);
     const { count } = req.body;
 
@@ -1172,20 +1194,37 @@ app.post('/api/admin/raffles/:id/generate-codes', requireAdmin, async (req, res)
       codes.push(code);
     }
 
-    // Get all prizes for this raffle with their remaining counts
+    // Lock raffle to prevent concurrent code generation race conditions
+    const raffleLock = await dbQuery('SELECT id FROM raffles WHERE id = $1 FOR UPDATE', [raffleId], client);
+    if (raffleLock.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: '活動不存在' });
+    }
+
+    // Get all prizes for this raffle, subtracting any ALREADY GENERATED BUT UNUSED codes
     const prizesResult = await dbQuery(
-      'SELECT id, remaining_count FROM prizes WHERE raffle_id = $1',
-      [raffleId]
+      `
+        SELECT p.id, p.remaining_count, 
+               COUNT(vc.id) as pending_codes
+        FROM prizes p
+        LEFT JOIN verification_codes vc ON p.id = vc.prize_id AND vc.used = false
+        WHERE p.raffle_id = $1
+        GROUP BY p.id, p.remaining_count
+      `,
+      [raffleId],
+      client
     );
 
     const availablePrizes = [];
-    for (const prize of prizesResult.rows) {
-      for (let i = 0; i < prize.remaining_count; i++) {
-        availablePrizes.push(prize.id);
+    for (const row of prizesResult.rows) {
+      const realRemaining = parseInt(row.remaining_count) - parseInt(row.pending_codes);
+      for (let i = 0; i < realRemaining; i++) {
+        availablePrizes.push(row.id);
       }
     }
 
     if (availablePrizes.length < codes.length) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         error: `剩餘獎項數量不足，淨係得 ${availablePrizes.length} 個空額，你要生成 ${codes.length} 個驗證碼`
       });
@@ -1202,9 +1241,12 @@ app.post('/api/admin/raffles/:id/generate-codes', requireAdmin, async (req, res)
       const prizeId = availablePrizes[i];
       await dbQuery(
         'INSERT INTO verification_codes (raffle_id, code, prize_id) VALUES ($1, $2, $3)',
-        [raffleId, codes[i], prizeId]
+        [raffleId, codes[i], prizeId],
+        client
       );
     }
+
+    await client.query('COMMIT');
 
     res.json({
       success: true,
@@ -1212,8 +1254,11 @@ app.post('/api/admin/raffles/:id/generate-codes', requireAdmin, async (req, res)
       generated: codes.length
     });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
   }
 });
 

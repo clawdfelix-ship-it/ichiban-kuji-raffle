@@ -6,6 +6,16 @@
 let currentRaffleId = null;
 
 // Utility functions
+function escapeHtml(unsafe) {
+  if (!unsafe) return '';
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 async function apiRequest(url, options = {}) {
   const hasFormData = options.body instanceof FormData;
   const headers = { ...(options.headers || {}) };
@@ -67,7 +77,7 @@ function initRafflePage(raffleId) {
         let html = `
           <div class="result-item ${result.item.is_final ? 'final-result' : ''}">
             ${result.item.is_final ? '🎉 獲得最終賞! 🎉<br>' : ''}
-            ${result.item.name}
+            ${escapeHtml(result.item.name)}
           </div>
           <p>委託完成，請保留截圖並聯絡商家領取商品</p>
         `;
@@ -214,13 +224,13 @@ function initRafflePage(raffleId) {
             ? 'background: #f0fdf4; color: #166534;'
             : 'background: #fef2f2; color: #991b1b;';
           const resultText = item.success
-            ? `✅ ${item.prize.name}${item.prize.is_final ? ' (最終賞)' : ''}`
-            : `❌ ${item.error}`;
+            ? `✅ ${escapeHtml(item.prize.name)}${item.prize.is_final ? ' (最終賞)' : ''}`
+            : `❌ ${escapeHtml(item.error)}`;
 
           html += `
             <tr>
               <td style="padding: 8px; border-bottom: 1px solid #eee;">${index + 1}</td>
-              <td style="padding: 8px; border-bottom: 1px solid #eee; font-family: monospace;">${item.code}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #eee; font-family: monospace;">${escapeHtml(item.code)}</td>
               <td style="padding: 8px; border-bottom: 1px solid #eee;"><span style="padding: 4px 8px; border-radius: 4px; ${statusStyle}">${resultText}</span></td>
             </tr>
           `;
@@ -241,7 +251,7 @@ function initRafflePage(raffleId) {
         });
 
       } catch (err) {
-        batchResultsContent.innerHTML = `<p style="color: red;">錯誤: ${err.message}</p>`;
+        batchResultsContent.innerHTML = `<p style="color: red;">錯誤: ${escapeHtml(err.message)}</p>`;
         alert(err.message);
       } finally {
         drawBtn.disabled = false;
@@ -382,7 +392,7 @@ function initCodesModal() {
         const statusClass = code.used ? 'used' : 'unused';
         html += `
           <tr>
-            <td><code class="code-text">${code.code}</code></td>
+            <td><code class="code-text">${escapeHtml(code.code)}</code></td>
             <td><span class="status-badge ${statusClass}">${status}</span></td>
             <td>${new Date(code.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
           </tr>
@@ -681,7 +691,7 @@ function renderItemList() {
     html += `
       <div class="item-admin-card ${item.is_final ? 'final' : ''}">
         <div class="item-admin-info">
-          <h4>${item.tier} - ${item.name}</h4>
+          <h4>${escapeHtml(item.tier)} - ${escapeHtml(item.name)}</h4>
           <p>數量: ${item.total_count} ${item.is_final ? '(最終賞)' : ''}</p>
         </div>
         <div class="item-admin-actions">
@@ -794,14 +804,14 @@ function initAdminUsersPage() {
       html += `
         <tr>
           <td>${u.id}</td>
-          <td>${u.username || ''}${u.is_admin ? ' (admin)' : ''}</td>
-          <td>${u.contact || '-'}</td>
+          <td>${escapeHtml(u.username || '')}${u.is_admin ? ' (admin)' : ''}</td>
+          <td>${escapeHtml(u.contact || '-')}</td>
           <td>${u.entries_count || 0}</td>
           <td>${u.codes_assigned_count || 0}</td>
           <td>${u.codes_used_count || 0}</td>
           <td>${u.created_at ? new Date(u.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : ''}</td>
           <td class="actions">
-            <button class="btn btn-sm btn-warning" data-action="reset" data-id="${u.id}" data-username="${u.username || ''}">重置密碼</button>
+            <button class="btn btn-sm btn-warning" data-action="reset" data-id="${u.id}" data-username="${escapeHtml(u.username || '')}">重置密碼</button>
           </td>
         </tr>
       `;
