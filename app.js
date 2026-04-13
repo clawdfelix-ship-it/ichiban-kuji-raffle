@@ -695,7 +695,12 @@ app.post('/api/raffle/:id/draw', async (req, res) => {
       [raffleId],
       client
     );
-    const remainingBoxes = raffleUpdate.rows[0].remaining_box;
+    if (raffleUpdate.rows.length === 0) {
+      await client.query('ROLLBACK');
+      await client.release();
+      return res.status(409).json({ error: '盒子餘量更新失敗，請重試' });
+    }
+    const remainingBoxes = raffleUpdate.rows[0].remaining_boxes;
     if (remainingBoxes <= 0) {
       await dbQuery(`UPDATE raffles SET status = 'completed' WHERE id = $1`, [raffleId], client);
     }
@@ -975,6 +980,7 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
     }
 
     // After processing all codes, update raffle remaining boxes once
+    let remainingBoxes = raffle.remaining_boxes;
     if (successCount > 0) {
       const raffleUpdate = await dbQuery(
         `
@@ -989,6 +995,7 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
 
       if (raffleUpdate.rows.length > 0) {
         const finalRemaining = raffleUpdate.rows[0].remaining_boxes;
+        remainingBoxes = finalRemaining;
         if (finalRemaining <= 0) {
           await dbQuery(`UPDATE raffles SET status = 'completed' WHERE id = $1`, [raffleId], client);
         }
@@ -1002,7 +1009,7 @@ app.post('/api/raffle/:id/batch-draw', async (req, res) => {
       results,
       successCount,
       totalCodes: codes.length,
-      remaining_boxes: raffle.remaining_boxes - successCount
+      remaining_boxes: remainingBoxes
     });
   } catch (err) {
     console.error('Batch draw fatal error:', err);
