@@ -277,7 +277,7 @@ function initAdminDashboard() {
 
       try {
         await apiRequest(`/api/admin/raffles/${raffleId}/status`, {
-          method: 'POST',
+          method: 'PATCH',
           body: JSON.stringify({ status: newStatus }),
         });
         window.location.reload();
